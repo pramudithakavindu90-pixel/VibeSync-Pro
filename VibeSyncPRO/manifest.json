@@ -1,9 +1,0 @@
-{
-  "manifest_version": 3,
-  "name": "VibeSync Pro",
-  "version": "1.0.0",
-  "description": "Professional Lyrics Video Maker",
-  "action": {
-    "default_popup": "index.html"
-  }
-}

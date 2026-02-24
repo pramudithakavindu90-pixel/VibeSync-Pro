@@ -8,6 +8,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>VibeSync Pro | Professional Lyrics Video Maker</title>
+    <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js');
+  }
+</script>
     <meta name="description"
         content="Create stunning music and lyrics videos with audio-reactive visuals, beat-synced shaking, and custom watermarks. Export in high quality for TikTok, Instagram, and YouTube.">
     <meta name="keywords"
@@ -2448,5 +2453,6 @@
         root.render(<App />);
     </script>
 </body>
+
 
 </html>

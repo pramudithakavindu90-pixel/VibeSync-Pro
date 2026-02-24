@@ -8,12 +8,13 @@
   "description": "Premium music streaming experience.",
   "icons": [
     {
-      "src": "icon-512.jpg",
+      "src": "icon-512.jpeg",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
   ]
 }
+
 
 

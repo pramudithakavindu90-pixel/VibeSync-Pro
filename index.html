@@ -1,0 +1,2461 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#09090b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>VibeSync Pro | Professional Lyrics Video Maker</title>
+    <meta name="description"
+        content="Create stunning music and lyrics videos with audio-reactive visuals, beat-synced shaking, and custom watermarks. Export in high quality for TikTok, Instagram, and YouTube.">
+    <meta name="keywords"
+        content="lyrics video maker, music visualizer, beat sync, audio reactive, video editor, video production, sinhala lyrics maker">
+
+    <!-- OpenGraph / Social Sharing -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="VibeSync Pro | Professional Lyrics Video Maker">
+    <meta property="og:description"
+        content="Generate high-end lyrics videos with real-time audio visualization and beat-reactive effects.">
+    <meta property="og:image" content="https://raw.githubusercontent.com/username/repo/main/og-preview.jpg">
+    <!-- Placeholder for later -->
+
+    <meta property="twitter:title" content="VibeSync Pro">
+    <meta property="twitter:description"
+        content="The ultimate tool for music video creators. Beat-synced visuals and audio-reactive lyrics.">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Abhaya+Libre:wght@400;700&family=Gemunu+Libre:wght@400;700&family=Noto+Sans+Sinhala:wght@400;700&family=Noto+Serif+Sinhala:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans Sinhala', sans-serif;
+            background-color: #09090b;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+
+        .glass-panel {
+            background: rgba(24, 24, 27, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Shake Effect Animation */
+        @keyframes shake-motion {
+
+            0%,
+            100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            25% {
+                transform: translate(-2px, 1px) rotate(-0.5deg);
+            }
+
+            50% {
+                transform: translate(2px, -1px) rotate(0.5deg);
+            }
+
+            75% {
+                transform: translate(-1px, -2px) rotate(-0.2deg);
+            }
+        }
+
+        .shake-img {
+            animation: shake-motion 0.2s infinite;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Animations */
+        @keyframes subtle-zoom {
+            0% {
+                transform: scale(1);
+            }
+
+            100% {
+                transform: scale(1.1);
+            }
+        }
+
+        .animate-zoom {
+            animation: subtle-zoom 20s infinite alternate linear;
+        }
+
+        .text-glow {
+            text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+        }
+
+        @media (max-width: 768px) {
+            .glass-panel {
+                backdrop-filter: blur(8px);
+                border-radius: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.75rem !important;
+            }
+
+            input[type="range"] {
+                height: 1.5rem;
+            }
+
+            .canvas-container {
+                position: sticky;
+                top: 0;
+                z-index: 50;
+                background: #09090b;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body class="text-white min-h-screen selection:bg-emerald-500/30">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Simple Icon Component
+        const Icon = ({ path }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {path}
+            </svg>
+        );
+
+        function App() {
+            // Data State
+            const [image, setImage] = useState(null);
+            const [videoBg, setVideoBg] = useState(null);
+            const [videoStart, setVideoStart] = useState(0);
+            const [videoEnd, setVideoEnd] = useState(0);
+            const [bgType, setBgType] = useState('none'); // 'image', 'video', 'none'
+            const [audioSrc, setAudioSrc] = useState(null);
+            const [lyrics, setLyrics] = useState("ඔබේ පද පේළි මෙහි ලියන්න...\nපහළ සිට ඉහළට...\nවීඩියෝවක් ලෙස රෙකෝඩ් කරන්න.");
+            const [shakeIntensity, setShakeIntensity] = React.useState(8);
+
+            // 1. Custom Quote (Wadan) + Emoji Menu State
+            const [customQuote, setCustomQuote] = useState("");
+            const [showEmojiMenu, setShowEmojiMenu] = useState(false);
+
+            // Custom Wadan color, size, style and position controls
+            const [customQuoteColor, setCustomQuoteColor] = useState('#ffffff');
+            const [customQuoteFontSize, setCustomQuoteFontSize] = useState(28);
+            const [customQuoteFontStyle, setCustomQuoteFontStyle] = useState('italic'); // 'normal' | 'italic'
+            const [customQuoteFontWeight, setCustomQuoteFontWeight] = useState('400'); // '400' | '700'
+            const [customQuoteFontFamily, setCustomQuoteFontFamily] = useState(fontFamily);
+            const [customQuoteHoriz, setCustomQuoteHoriz] = useState('center'); // 'left' | 'center' | 'right'
+            const [customQuoteVert, setCustomQuoteVert] = useState('top'); // 'top' | 'middle' | 'bottom'
+            // Animation controls
+            const [customQuoteAnimation, setCustomQuoteAnimation] = useState('none'); // 'none' | 'fade' | 'slide' | 'pulse'
+            const [customQuoteAnimSpeed, setCustomQuoteAnimSpeed] = useState(1);
+
+            const [animateLyrics, setAnimateLyrics] = useState(false);
+            const [lyricsAnimationType, setLyricsAnimationType] = useState('none'); // 'none' | 'pulse' | 'wave'
+            // Enter behavior for quote input: when true, Enter inserts newline ABOVE current line
+            // Default to false so typing is top->bottom (normal) by default
+            const [enterInsertAbove, setEnterInsertAbove] = useState(false);
+            // Reveal (progressive) controls for custom quote
+            const [customQuoteRevealMode, setCustomQuoteRevealMode] = useState('none'); // 'none' | 'typewriter' | 'line'
+            const [customQuoteRevealSpeed, setCustomQuoteRevealSpeed] = useState(12); // chars/sec or lines/sec depending on mode
+            const [customQuoteRevealDirection, setCustomQuoteRevealDirection] = useState('top-down'); // 'top-down' | 'bottom-up'
+            const customQuoteRevealStartRef = useRef(null);
+
+            // Common emojis list (customize as you like)
+            const commonEmojis = ["❤️", "✨", "🌟", "🔥", "🎶", "🎧", "🥀", "🍃", "🕊️", "🖤", "😇", "🌸", "💫", "🌎", "💖", "🫀", "💕", "🎸", "▶︎ •၊၊||၊|။||||။‌‌‌‌‌၊|• 0:30", "🫶", "🧠", "🍀", "💔", "👁️", "🤍"];
+
+            // Playback State
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [scrollPos, setScrollPos] = useState(0);
+            const [speed, setSpeed] = useState(1);
+            const [duration, setDuration] = useState(0);
+            const [currentTime, setCurrentTime] = useState(0);
+            const [audioStart, setAudioStart] = useState(0);
+            const [audioEnd, setAudioEnd] = useState(0);
+
+            // Styling State
+            const [fontSize, setFontSize] = useState(30);
+            const [alignment, setAlignment] = useState('center');
+            const [scrollDirection, setScrollDirection] = useState('up'); // 'up', 'down', 'left', 'right'
+            const [displayMode, setDisplayMode] = useState('scroll'); // 'scroll', 'fade'
+            const [fontFamily, setFontFamily] = useState('Noto Sans Sinhala');
+            const [textColor, setTextColor] = useState('#ffffff');
+            const [lineSpacing, setLineSpacing] = useState(1.5);
+
+            // Visual Effects State
+            const [glowEffect, setGlowEffect] = useState(false);
+            const [highlightEffect, setHighlightEffect] = useState(false);
+            const [activeColor, setActiveColor] = useState('#fbbf24'); // Amber-400
+            const [bgZoom, setBgZoom] = useState(true);
+            const [bgZoomPreset, setBgZoomPreset] = useState('sin'); // 'sin', 'pulse', 'slow', 'none'
+            const [bgZoomAmount, setBgZoomAmount] = useState(0.03); // max scale amplitude
+            const [bgZoomSpeed, setBgZoomSpeed] = useState(0.15); // cycles per second
+            const [isRecording, setIsRecording] = useState(false);
+
+            const [quality, setQuality] = useState('1080p'); // Default to FHD
+            const [aspectRatio, setAspectRatio] = useState('16:9'); // Default Landscape
+            const [downloadUrl, setDownloadUrl] = useState(null);
+            const [showVisualizer, setShowVisualizer] = useState(false);
+            const [progressStyle, setProgressStyle] = useState('linear'); // 'linear' or 'circular'
+            const [progressPosition, setProgressPosition] = useState('bottom'); // 'top' or 'bottom'
+            const [tone, setTone] = useState('normal');
+            const [showParticles, setShowParticles] = useState(false);
+
+            // Signature / Watermark State
+            const [signatureText, setSignatureText] = useState("");
+            const [signatureFontSize, setSignatureFontSize] = useState(14);
+            const [signatureFontFamily, setSignatureFontFamily] = useState('Noto Sans Sinhala');
+            const [signatureColor, setSignatureColor] = useState('#ffffff');
+            const [signatureOpacity, setSignatureOpacity] = useState(0.6);
+            const [signaturePosition, setSignaturePosition] = useState('bottom-right');
+
+            // Audio Context Refs
+            const audioCtxRef = useRef(null);
+            const analyserRef = useRef(null);
+            const sourceRef = useRef(null);
+
+
+
+
+            // Resolutons (Base Shortest Side) with High Bitrates
+            const BASE_RESOLUTIONS = {
+                '144p': { size: 144, bitrate: 500000, label: '144p (Very Low)' },
+                '240p': { size: 240, bitrate: 800000, label: '240p (Low)' },
+                '360p': { size: 360, bitrate: 1500000, label: '360p (Normal)' },
+                '480p': { size: 480, bitrate: 3000000, label: '480p (SD)' },
+                '720p': { size: 720, bitrate: 8000000, label: '720p (HD)' },
+                '1080p': { size: 1080, bitrate: 16000000, label: '1080p (FHD)' },
+                '2k': { size: 1440, bitrate: 28000000, label: '2K (Ultra)' }
+            };
+
+
+
+
+
+            const RATIOS = {
+                '16:9': { w: 16, h: 9, label: 'Wide (16:9)' },
+                '9:16': { w: 9, h: 16, label: 'Story (9:16)' },
+                '1:1': { w: 1, h: 1, label: 'Square (1:1)' },
+                '4:5': { w: 4, h: 5, label: 'Portrait (4:5)' }
+            };
+
+            const TONES = {
+                'normal': { label: 'Normal', filter: 'none' },
+                'warm': { label: 'Warm (Golden)', filter: 'sepia(0.3) saturate(1.4) contrast(1.1)' },
+                'cold': { label: 'Cold (Blue)', filter: 'hue-rotate(180deg) saturate(1.2) brightness(1.1)' },
+                'vintage': { label: 'Vintage', filter: 'sepia(0.8) contrast(0.9) brightness(0.9)' },
+                'grayscale': { label: 'B&W (Grayscale)', filter: 'grayscale(1) contrast(1.2)' },
+                'vivid': { label: 'Vivid (Bright)', filter: 'saturate(1.8) contrast(1.2)' },
+                'dramatic': { label: 'Dramatic', filter: 'contrast(1.6) brightness(0.8)' }
+            };
+
+            const THEMES = {
+                'classic': {
+                    label: 'Classic',
+                    icon: '🌟',
+                    config: {
+                        font: 'Noto Sans Sinhala',
+                        textColor: '#ffffff',
+                        activeColor: '#fbbf24',
+                        glow: false,
+                        tone: 'normal',
+                        particles: false,
+                        visualizer: false,
+                        zoom: true
+                    }
+                },
+                'rock': {
+                    label: 'Rock Style',
+                    icon: '🎸',
+                    config: {
+                        font: 'Gemunu Libre',
+                        textColor: '#ffffff',
+                        activeColor: '#ef4444',
+                        glow: true,
+                        tone: 'dramatic',
+                        particles: true,
+                        visualizer: true,
+                        zoom: true
+                    }
+                },
+                'romantic': {
+                    label: 'Romantic',
+                    icon: '❤️',
+                    config: {
+                        font: 'Abhaya Libre',
+                        textColor: '#fce7f3',
+                        activeColor: '#f472b6',
+                        glow: true,
+                        tone: 'warm',
+                        particles: true,
+                        visualizer: false,
+                        zoom: true
+                    }
+                },
+                'cinematic': {
+                    label: 'Cinematic',
+                    icon: '🎬',
+                    config: {
+                        font: 'Noto Serif Sinhala',
+                        textColor: '#ffffff',
+                        activeColor: '#ffffff',
+                        glow: false,
+                        tone: 'vintage',
+                        particles: false,
+                        visualizer: false,
+                        zoom: true
+                    }
+                }
+            };
+
+            // Refs
+            const logicRequestRef = useRef(); // Renamed for clarity
+            const canvasRequestRef = useRef(); // New Ref for Canvas
+            const particlesRef = useRef([]); // [{x, y, vx, vy, size, opacity}]
+            const audioRef = useRef(null);
+            const lyricsRef = useRef(null);
+            const fileInputImageRef = useRef(null);
+            const fileInputVideoRef = useRef(null);
+            const fileInputAudioRef = useRef(null);
+            const mediaRecorderRef = useRef(null);
+            const chunksRef = useRef([]);
+            const canvasRef = useRef(null);
+
+            const fonts = [
+                { name: 'Noto Sans (Default)', value: 'Noto Sans Sinhala' },
+                { name: 'Noto Serif (Serif)', value: 'Noto Serif Sinhala' },
+                { name: 'Abhaya Libre (Classic)', value: 'Abhaya Libre' },
+                { name: 'Gemunu Libre (Bold)', value: 'Gemunu Libre' }
+            ];
+
+
+            const handleImageChange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (x) => {
+                        const img = new Image();
+                        img.crossOrigin = "anonymous";
+                        img.onload = () => {
+                            setImage(img);
+                            setBgType('image');
+                        };
+                        img.src = x.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const handleVideoBgChange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const url = URL.createObjectURL(file);
+                    const video = document.createElement('video');
+                    video.crossOrigin = "anonymous";
+                    video.src = url;
+                    video.muted = true;
+                    video.loop = true;
+                    video.playsInline = true;
+                    video.onloadeddata = () => {
+                        setVideoBg(video);
+                        setVideoStart(0);
+                        setVideoEnd(video.duration);
+                        setBgType('video');
+                    };
+                }
+            };
+
+            const handleAudioChange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const url = URL.createObjectURL(file);
+                    setAudioSrc(url);
+                    // Ensure newly loaded audio does not autoplay
+                    setIsPlaying(false);
+                    setCurrentTime(0);
+                    // If an existing audio element is present, pause and reset
+                    try {
+                        if (audioRef.current) {
+                            audioRef.current.pause();
+                            audioRef.current.currentTime = 0;
+                        }
+                    } catch (err) { }
+                }
+            };
+
+            // When typing quote: Enter inserts a new line above the current line
+            const handleQuoteKeyDown = (e) => {
+                if (!enterInsertAbove) return; // only active when toggle enabled
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    const el = e.target;
+                    const val = el.value || '';
+                    const pos = el.selectionStart;
+                    // find start index of the current line
+                    const prevNewline = val.lastIndexOf('\n', pos - 1);
+                    const lineStart = prevNewline + 1; // 0 if none
+                    // Insert a newline at lineStart so a blank line appears above current line
+                    const newVal = val.slice(0, lineStart) + '\n' + val.slice(lineStart);
+                    setCustomQuote(newVal);
+                    // move caret into the new empty line (after the newline)
+                    const caretPos = lineStart;
+                    // set selection asynchronously so textarea updates first
+                    requestAnimationFrame(() => {
+                        try { el.selectionStart = el.selectionEnd = caretPos; } catch (err) { }
+                    });
+                }
+            };
+
+            const handleLoadedMetadata = () => {
+                if (audioRef.current) {
+                    const dur = audioRef.current.duration;
+                    setDuration(dur);
+                    setAudioEnd(dur);
+                    setAudioStart(0);
+                }
+            };
+            const handleTimeUpdate = () => { if (audioRef.current) setCurrentTime(audioRef.current.currentTime); };
+
+            const autoSyncSpeed = () => {
+                const effectiveDuration = audioEnd - audioStart;
+                if (effectiveDuration > 0) {
+                    const canvas = canvasRef.current;
+                    const lines = lyrics.split('\n');
+                    const lineHeight = fontSize * lineSpacing;
+
+                    let totalDistance;
+                    if (scrollDirection === 'up' || scrollDirection === 'down') {
+                        totalDistance = (lines.length * lineHeight) + 600; // Height + buffer
+                    } else {
+                        // For horizontal, calculate max line width
+                        const ctx = canvas.getContext('2d');
+                        ctx.font = `${fontSize}px "${fontFamily}"`;
+                        let maxW = 0;
+                        lines.forEach(l => {
+                            const w = ctx.measureText(l.trim()).width;
+                            if (w > maxW) maxW = w;
+                        });
+                        totalDistance = maxW + canvas.width;
+                    }
+
+                    const totalFrames = effectiveDuration * 60;
+                    const calculatedSpeed = totalDistance / totalFrames;
+                    setSpeed(parseFloat(calculatedSpeed.toFixed(2)));
+                } else {
+                    alert("Please select a song first!");
+                }
+            };
+
+            // --- Canvas Sizing Logic ---
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+
+                const baseRes = BASE_RESOLUTIONS[quality];
+                const ratio = RATIOS[aspectRatio];
+
+                let w, h;
+                if (ratio.w >= ratio.h) {
+                    h = baseRes.size;
+                    w = Math.round((h * ratio.w) / ratio.h);
+                } else {
+                    w = baseRes.size;
+                    h = Math.round((w * ratio.h) / ratio.w);
+                }
+
+                canvas.width = w;
+                canvas.height = h;
+            }, [quality, aspectRatio]);
+
+            const applyTheme = (themeKey) => {
+                const theme = THEMES[themeKey];
+                if (!theme) return;
+                const c = theme.config;
+                setFontFamily(c.font);
+                setTextColor(c.textColor);
+                setActiveColor(c.activeColor);
+                setGlowEffect(c.glow);
+                setTone(c.tone);
+                setShowParticles(c.particles);
+                setShowVisualizer(c.visualizer);
+                setBgZoom(c.zoom);
+            };
+
+            // Initialize Particles
+            useEffect(() => {
+                const count = 100;
+                const p = [];
+                for (let i = 0; i < count; i++) {
+                    p.push({
+                        x: Math.random() * 2000,
+                        y: Math.random() * 2000,
+                        vx: (Math.random() - 0.5) * 1.5,
+                        vy: Math.random() * 1.5 + 0.5,
+                        size: Math.random() * 2 + 1,
+                        opacity: Math.random() * 0.5 + 0.2
+                    });
+                }
+                particlesRef.current = p;
+            }, []);
+
+            // --- Canvas Drawing Logic ---
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+
+                const draw = () => {
+                    const W = canvas.width;
+                    const H = canvas.height;
+                    const resScale = H / 720;
+                    const overlayH = 48 * resScale;
+                    const padding = 10 * resScale;
+
+
+
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.clearRect(0, 0, W, H);
+
+                    // 0. Audio Visualization (Symmetric Dancing Bars)
+                    if (showVisualizer && analyserRef.current) {
+                        const analyser = analyserRef.current;
+                        const bufferLength = analyser.frequencyBinCount;
+                        const dataArray = new Uint8Array(bufferLength);
+                        analyser.getByteFrequencyData(dataArray);
+
+                        // Use a subset of bins (bass/mid) for a cleaner "dancing bars" look
+                        const binsToUse = 40;
+                        const barGap = 4 * resScale;
+                        const totalBarsWidth = (binsToUse * 2) * (15 * resScale + barGap);
+                        const startX = (W - totalBarsWidth) / 2;
+
+                        ctx.save();
+                        ctx.globalAlpha = 0.8;
+                        ctx.fillStyle = highlightEffect ? activeColor : textColor;
+
+                        for (let i = 0; i < binsToUse; i++) {
+                            // Map frequency to height (emphasize bass)
+                            const val = dataArray[i];
+                            const percent = val / 255;
+                            const barHeight = percent * (H * 0.25) + (2 * resScale);
+                            const barWidth = 12 * resScale;
+
+                            // Mirror Left
+                            const xLeft = (W / 2) - (i * (barWidth + barGap)) - barWidth;
+                            // Mirror Right
+                            const xRight = (W / 2) + (i * (barWidth + barGap));
+
+                            // Draw Rounded Bars
+                            const drawBar = (bx) => {
+                                ctx.beginPath();
+                                if (ctx.roundRect) {
+                                    ctx.roundRect(bx, H - barHeight - (20 * resScale), barWidth, barHeight, 4 * resScale);
+                                } else {
+                                    ctx.rect(bx, H - barHeight - (20 * resScale), barWidth, barHeight);
+                                }
+                                ctx.fill();
+                            };
+
+                            drawBar(xLeft);
+                            drawBar(xRight);
+                        }
+                        ctx.restore();
+                    }
+
+                    // 1. Background (Black)
+                    ctx.fillStyle = '#09090b';
+                    ctx.fillRect(0, 0, W, H);
+
+                    // 2. Background Media
+                    ctx.save();
+                    if (tone !== 'normal' && TONES[tone]) {
+                        ctx.filter = TONES[tone].filter;
+                    }
+
+                    // Compute a smooth, preset-driven zoom scale
+                    const now = Date.now();
+                    let zoomScale = 1;
+                    if (isPlaying && bgZoom && bgZoomPreset !== 'none') {
+                        const t = now / 1000; // seconds
+                        const amt = Math.max(0, parseFloat(bgZoomAmount) || 0);
+                        const spd = Math.max(0.0001, parseFloat(bgZoomSpeed) || 0.15);
+                        if (bgZoomPreset === 'sin') {
+                            zoomScale = 1 + Math.sin(t * spd * Math.PI * 2) * amt;
+                        } else if (bgZoomPreset === 'pulse') {
+                            zoomScale = 1 + Math.abs(Math.sin(t * spd * Math.PI * 2)) * amt;
+                        } else if (bgZoomPreset === 'slow') {
+                            zoomScale = 1 + Math.sin(t * spd * Math.PI * 2) * (amt * 0.5);
+                        } else {
+                            zoomScale = 1 + Math.sin(t * spd * Math.PI * 2) * amt;
+                        }
+
+                    }
+                    // --- Beat-Sync Shake (Web Audio API — bass threshold detection) ---
+                    let shakeX = 0;
+                    let shakeY = 0;
+                    let onBeat = false;
+                    if (isPlaying && shakeIntensity > 0) {
+                        if (analyserRef.current) {
+                            const shakeAnalyser = analyserRef.current;
+                            const bufLen = shakeAnalyser.frequencyBinCount;
+                            const shakeBuffer = new Uint8Array(bufLen);
+                            shakeAnalyser.getByteFrequencyData(shakeBuffer);
+
+                            // Use lower quarter of spectrum = true sub-bass (kick drums)
+                            const bassSlice = shakeBuffer.slice(0, Math.floor(bufLen / 4));
+                            const bassAvg = bassSlice.reduce((a, b) => a + b, 0) / bassSlice.length;
+
+                            // Only shake when beat fires (avgBass > threshold)
+                            const threshold = 255 * 0.7; // ~180/255 ≈ 70%
+                            if (bassAvg > threshold) {
+                                onBeat = true;
+                                shakeX = (Math.random() - 0.5) * shakeIntensity * resScale * 3;
+                                shakeY = (Math.random() - 0.5) * shakeIntensity * resScale * 3;
+                            }
+                        } else {
+                            // Fallback: random shake when no audio loaded
+                            shakeX = (Math.random() - 0.5) * shakeIntensity * resScale;
+                            shakeY = (Math.random() - 0.5) * shakeIntensity * resScale;
+                        }
+                    }
+
+
+
+                    if (bgType === 'image' && image) {
+                        ctx.save();
+                        const centerX = W / 2;
+                        const centerY = H / 2;
+                        ctx.translate(centerX + shakeX, centerY + shakeY);
+                        ctx.scale(zoomScale, zoomScale);
+                        ctx.translate(-centerX, -centerY);
+
+                        const scaleFactor = Math.max(W / image.width, H / image.height);
+                        const imgW = image.width * scaleFactor;
+                        const imgH = image.height * scaleFactor;
+                        const x = (W - imgW) / 2;
+                        const y = (H - imgH) / 2;
+                        ctx.globalAlpha = 1.0;
+                        ctx.drawImage(image, x, y, imgW, imgH);
+                        ctx.restore();
+                    } else if (bgType === 'video' && videoBg) {
+                        ctx.save();
+                        const centerX = W / 2;
+                        const centerY = H / 2;
+                        ctx.translate(centerX, centerY);
+                        ctx.scale(zoomScale, zoomScale);
+                        ctx.translate(-centerX, -centerY);
+
+                        const scaleFactor = Math.max(W / videoBg.videoWidth, H / videoBg.videoHeight);
+                        const vW = videoBg.videoWidth * scaleFactor;
+                        const vH = videoBg.videoHeight * scaleFactor;
+                        const x = (W - vW) / 2;
+                        const y = (H - vH) / 2;
+                        ctx.globalAlpha = 1.0;
+                        ctx.drawImage(videoBg, x, y, vW, vH);
+                        ctx.restore();
+                    }
+                    ctx.restore(); // End of Filter Context
+
+                    // 2.4 Beat Flash Overlay (brightness effect on beat hit)
+                    if (onBeat) {
+                        ctx.save();
+                        ctx.globalAlpha = 0.12; // subtle brightness flash
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, W, H);
+                        ctx.restore();
+                    }
+
+                    // 2.5 Particles Overlay
+                    if (showParticles) {
+                        ctx.save();
+                        ctx.fillStyle = 'white';
+                        particlesRef.current.forEach(p => {
+                            // Update
+                            p.x += p.vx;
+                            p.y += p.vy;
+
+                            // Wrap around
+                            if (p.x < 0) p.x = W;
+                            if (p.x > W) p.x = 0;
+                            if (p.y > H) p.y = 0;
+
+                            // Draw
+                            ctx.globalAlpha = p.opacity;
+                            ctx.beginPath();
+                            ctx.arc(p.x, p.y, p.size * resScale, 0, Math.PI * 2);
+                            ctx.fill();
+                        });
+                        ctx.restore();
+                    }
+
+                    // 3. Lyrics
+                    // Calculate relative scale based on height (relative to standard 720p)
+                    const scaledFontSize = fontSize * resScale;
+
+                    ctx.font = `${scaledFontSize}px "${fontFamily}"`;
+                    ctx.textAlign = (scrollDirection === 'left' || scrollDirection === 'right') ? 'left' : alignment;
+                    ctx.textBaseline = 'middle';
+
+                    const lines = lyrics.split('\n').filter(l => l.trim().length > 0);
+                    const lineHeight = scaledFontSize * lineSpacing;
+
+                    if (displayMode === 'fade') {
+                        // One-by-one fade logic
+                        const effectiveDuration = audioEnd - audioStart;
+                        if (effectiveDuration > 0) {
+                            const songTime = currentTime - audioStart;
+                            const lineDuration = effectiveDuration / lines.length;
+                            const idx = Math.floor(Math.max(0, songTime) / lineDuration);
+                            if (idx < lines.length) {
+                                const line = lines[idx].trim();
+                                const timeInLine = songTime % lineDuration;
+                                let opacity = 1.0;
+                                const fadeTime = Math.min(0.5, lineDuration * 0.2); // 20% of duration for fade
+                                if (timeInLine < fadeTime) opacity = timeInLine / fadeTime;
+                                else if (timeInLine > lineDuration - fadeTime) opacity = (lineDuration - timeInLine) / fadeTime;
+
+                                ctx.save();
+                                ctx.font = `bold ${scaledFontSize * 1.2}px "${fontFamily}"`;
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.globalAlpha = Math.max(0, opacity);
+
+                                // Scale up slightly
+                                const scale = 1.15;
+                                ctx.translate(W / 2, H * 0.85);
+                                ctx.scale(scale, scale);
+                                ctx.translate(-(W / 2), -(H * 0.85));
+
+                                if (glowEffect || highlightEffect) {
+                                    ctx.shadowColor = highlightEffect ? activeColor : textColor;
+                                    ctx.shadowBlur = highlightEffect ? 35 * resScale : 25 * resScale;
+                                }
+
+                                ctx.fillStyle = highlightEffect ? activeColor : textColor;
+                                ctx.fillText(line, W / 2, H * 0.85); // Position at Bottom Middle
+                                ctx.restore();
+                            }
+                        }
+                    } else {
+                        // Existing scrolling logic
+                        const effectiveScroll = scrollPos * resScale;
+                        lines.forEach((line, index) => {
+                            let lineX, lineY;
+
+                            // Calculate positions based on direction
+                            if (scrollDirection === 'up') {
+                                lineY = H - effectiveScroll + (index * lineHeight);
+                                if (alignment === 'left') lineX = 60 * resScale;
+                                else if (alignment === 'right') lineX = W - (60 * resScale);
+                                else lineX = W / 2;
+                            } else if (scrollDirection === 'down') {
+                                lineY = effectiveScroll - (index * lineHeight) - 100; // Offset for visibility
+                                if (alignment === 'left') lineX = 60 * resScale;
+                                else if (alignment === 'right') lineX = W - (60 * resScale);
+                                else lineX = W / 2;
+                            } else if (scrollDirection === 'left') {
+                                const lineWidth = ctx.measureText(line.trim()).width;
+                                lineX = W - effectiveScroll + (index * (lineWidth + 200));
+                                lineY = H / 2;
+                            } else if (scrollDirection === 'right') {
+                                const lineWidth = ctx.measureText(line.trim()).width;
+                                lineX = effectiveScroll - (index * (lineWidth + 200)) - lineWidth;
+                                lineY = H / 2;
+                            }
+
+                            // Only draw if within reasonable bounds
+                            if (lineY > -lineHeight && lineY < H + lineHeight && lineX > -W && lineX < W * 2) {
+                                let isHighlighted = false;
+
+                                if (highlightEffect) {
+                                    if (scrollDirection === 'up' || scrollDirection === 'down') {
+                                        const focalZoneTop = H * 0.4;
+                                        const focalZoneBottom = H * 0.6;
+                                        isHighlighted = lineY > focalZoneTop && lineY < focalZoneBottom;
+                                    } else {
+                                        const focalZoneLeft = W * 0.3;
+                                        const focalZoneRight = W * 0.7;
+                                        isHighlighted = lineX > focalZoneLeft && lineX < focalZoneRight;
+                                    }
+                                }
+
+                                ctx.save();
+
+                                // Setup Shadows/Glow
+                                if (glowEffect || (highlightEffect && isHighlighted)) {
+                                    ctx.shadowColor = (highlightEffect && isHighlighted) ? activeColor : textColor;
+                                    ctx.shadowBlur = (highlightEffect && isHighlighted) ? 30 * resScale : 15 * resScale;
+                                    ctx.shadowOffsetX = 0;
+                                    ctx.shadowOffsetY = 0;
+                                }
+
+                                // Set Color
+                                if (highlightEffect) {
+                                    if (isHighlighted) {
+                                        ctx.fillStyle = activeColor;
+                                        ctx.globalAlpha = 1.0;
+                                    } else {
+                                        ctx.fillStyle = textColor;
+                                        ctx.globalAlpha = 0.4;
+                                    }
+                                } else {
+                                    ctx.fillStyle = textColor;
+                                    ctx.globalAlpha = 1.0;
+                                }
+
+                                // Lyrics animations
+                                if (animateLyrics && lyricsAnimationType === 'pulse') {
+                                    const t = (Date.now() / 1000) * customQuoteAnimSpeed;
+                                    const pulse = 1 + 0.06 * Math.sin(t * 2 * Math.PI + index);
+                                    ctx.translate(lineX, lineY);
+                                    ctx.scale(pulse, pulse);
+                                    ctx.translate(-lineX, -lineY);
+                                }
+
+                                if (animateLyrics && lyricsAnimationType === 'wave') {
+                                    const t = (Date.now() / 1000) * customQuoteAnimSpeed;
+                                    const offsetXWave = Math.sin(t * 2 * Math.PI + index * 0.6) * (12 * resScale);
+                                    lineX += offsetXWave;
+                                }
+
+                                if (isHighlighted) {
+                                    const scale = 1.1; // 10% scale up
+                                    ctx.translate(lineX, lineY);
+                                    ctx.scale(scale, scale);
+                                    ctx.translate(-lineX, -lineY);
+                                }
+
+                                ctx.fillText(line.trim(), lineX, lineY);
+                                ctx.restore();
+                            }
+                        });
+                    }
+
+                    // --- Custom Wadan (Quote) Drawing ---
+                    if (customQuote && customQuote.trim().length > 0) {
+                        // --- Timing: prefer media time, fall back to wall-clock, show preview when paused ---
+                        let nowSec = null;
+                        const hasAudio = audioRef.current && !isNaN(audioRef.current.currentTime) && audioRef.current.duration > 0;
+                        const hasVideo = videoBg && !isNaN(videoBg.currentTime);
+
+                        if (hasAudio) {
+                            nowSec = audioRef.current.currentTime;
+                        } else if (hasVideo) {
+                            nowSec = videoBg.currentTime;
+                        } else if (isPlaying) {
+                            nowSec = Date.now() / 1000;
+                        }
+                        // startSec defaults to current time if never set (set/reset on mode change or play)
+                        if (customQuoteRevealStartRef.current == null && isPlaying) {
+                            customQuoteRevealStartRef.current = nowSec;
+                        }
+                        const startSec = customQuoteRevealStartRef.current != null ? customQuoteRevealStartRef.current : nowSec;
+
+                        // Determine visible text based on reveal mode
+                        let visibleQuote = customQuote; // default: show full text
+                        let __quoteLyricsProgress = 0;
+
+                        if (customQuoteRevealMode !== 'none') {
+                            if (!isPlaying) {
+                                // PAUSED: show full text as static preview so user can see the quote
+                                visibleQuote = customQuote;
+                            } else if (nowSec == null || startSec == null) {
+                                visibleQuote = ''; // Safety
+                            } else {
+                                const elapsed = Math.max(0, nowSec - startSec);
+                                if (customQuoteRevealMode === 'typewriter') {
+                                    const maxChars = Math.min(customQuote.length, Math.floor(elapsed * customQuoteRevealSpeed));
+                                    visibleQuote = customQuote.slice(0, maxChars);
+                                } else if (customQuoteRevealMode === 'line') {
+                                    const qls = customQuote.split('\n');
+                                    const maxLines = Math.min(qls.length, Math.floor(elapsed * customQuoteRevealSpeed));
+                                    if (customQuoteRevealDirection === 'top-down') {
+                                        visibleQuote = qls.slice(0, maxLines).join('\n');
+                                    } else {
+                                        const startIdx = Math.max(0, qls.length - maxLines);
+                                        visibleQuote = qls.slice(startIdx).join('\n');
+                                    }
+                                } else if (customQuoteRevealMode === 'lyrics') {
+                                    visibleQuote = customQuote;
+                                    __quoteLyricsProgress = Math.max(0, elapsed * customQuoteRevealSpeed);
+                                }
+                            }
+                        }
+
+                        ctx.save();
+                        const fontStylePrefix = customQuoteFontStyle === 'italic' ? 'italic ' : '';
+                        const fontWeightPrefix = customQuoteFontWeight === '700' ? 'bold ' : '';
+                        const sizePx = (customQuoteFontSize * resScale);
+                        ctx.font = `${fontStylePrefix}${fontWeightPrefix}${sizePx}px "${customQuoteFontFamily || fontFamily}"`;
+                        // Use selected color (allow rgba or hex)
+                        ctx.fillStyle = customQuoteColor || "rgba(255, 255, 255, 0.9)";
+
+                        // Horizontal position
+                        let x = W / 2;
+                        if (customQuoteHoriz === 'left') {
+                            ctx.textAlign = 'left';
+                            x = 60 * resScale;
+                        } else if (customQuoteHoriz === 'right') {
+                            ctx.textAlign = 'right';
+                            x = W - (60 * resScale);
+                        } else {
+                            ctx.textAlign = 'center';
+                            x = W / 2;
+                        }
+
+                        // Vertical position
+                        let y = H * 0.15;
+                        if (customQuoteVert === 'middle') {
+                            y = H * 0.5;
+                        } else if (customQuoteVert === 'bottom') {
+                            y = H * 0.85;
+                        } else {
+                            y = H * 0.12;
+                        }
+
+                        // Animation transformations for the quote
+                        if (customQuoteAnimation && customQuoteAnimation !== 'none') {
+                            const t = (Date.now() / 1000) * customQuoteAnimSpeed;
+                            if (customQuoteAnimation === 'fade') {
+                                const alpha = 0.6 + 0.4 * (0.5 + 0.5 * Math.sin(t * 2 * Math.PI));
+                                ctx.globalAlpha = alpha;
+                            } else if (customQuoteAnimation === 'slide') {
+                                const slide = Math.sin(t * 2 * Math.PI) * (18 * resScale);
+                                y += slide;
+                            } else if (customQuoteAnimation === 'pulse') {
+                                const scale = 1 + 0.06 * Math.sin(t * 2 * Math.PI);
+                                ctx.translate(x, y);
+                                ctx.scale(scale, scale);
+                                ctx.translate(-x, -y);
+                            }
+                        }
+
+                        // Draw possibly partially revealed quote (support multi-line)
+                        if (visibleQuote.indexOf('\n') === -1) {
+                            ctx.fillText(visibleQuote, x, y);
+                        } else {
+                            const qLines = visibleQuote.split('\n').filter(l => l.length > 0);
+                            const total = qLines.length;
+                            const lineH = (customQuoteFontSize * resScale) * 1.05;
+
+                            if (customQuoteRevealMode === 'lyrics') {
+                                // Use pre-computed progress from outer block
+                                const progressLines = __quoteLyricsProgress;
+
+                                if (customQuoteRevealDirection === 'top-down') {
+                                    // anchor top at y, lines move up as progress increases
+                                    qLines.forEach((ql, qi) => {
+                                        const yy = y + ((qi - progressLines) * lineH);
+                                        ctx.fillText(ql, x, yy);
+                                    });
+                                } else {
+                                    // bottom-up: anchor last line at y, move entire block upward smoothly
+                                    qLines.forEach((ql, qi) => {
+                                        const yy = y - (((total - 1 - qi) + progressLines) * lineH);
+                                        ctx.fillText(ql, x, yy);
+                                    });
+                                }
+                            } else {
+                                // Static line-by-line reveal (no smooth scrolling)
+                                if (customQuoteRevealDirection === 'top-down') {
+                                    qLines.forEach((ql, qi) => {
+                                        const yy = y + (qi * lineH);
+                                        ctx.fillText(ql, x, yy);
+                                    });
+                                } else {
+                                    // bottom-up: anchor last visible line at y and draw upwards
+                                    qLines.forEach((ql, qi) => {
+                                        const yy = y - ((total - 1 - qi) * lineH);
+                                        ctx.fillText(ql, x, yy);
+                                    });
+                                }
+                            }
+                        }
+                        ctx.restore();
+                    }
+
+                    // --- Signature / Watermark Drawing ---
+                    if (signatureText && signatureText.trim().length > 0) {
+                        ctx.save();
+                        const sigSize = signatureFontSize * resScale;
+                        ctx.font = `${sigSize}px "${signatureFontFamily}"`;
+                        ctx.globalAlpha = signatureOpacity;
+                        ctx.fillStyle = signatureColor;
+
+                        let sx, sy;
+                        if (signaturePosition === 'bottom-right') {
+                            ctx.textAlign = 'right';
+                            sx = W - (15 * resScale);
+                            sy = H - (10 * resScale);
+                        } else if (signaturePosition === 'bottom-left') {
+                            ctx.textAlign = 'left';
+                            sx = 15 * resScale;
+                            sy = H - (10 * resScale);
+                        } else if (signaturePosition === 'bottom-center') {
+                            ctx.textAlign = 'center';
+                            sx = W / 2;
+                            sy = H - (10 * resScale);
+                        } else if (signaturePosition === 'top-right') {
+                            ctx.textAlign = 'right';
+                            sx = W - (15 * resScale);
+                            sy = (progressPosition === 'top' ? overlayH + (15 * resScale) + sigSize : (15 * resScale) + sigSize);
+                        } else if (signaturePosition === 'top-left') {
+                            ctx.textAlign = 'left';
+                            sx = 15 * resScale;
+                            sy = (progressPosition === 'top' ? overlayH + (15 * resScale) + sigSize : (15 * resScale) + sigSize);
+                        } else if (signaturePosition === 'top-center') {
+                            ctx.textAlign = 'center';
+                            sx = W / 2;
+                            sy = (progressPosition === 'top' ? overlayH + (15 * resScale) + sigSize : (15 * resScale) + sigSize);
+                        } else if (signaturePosition === 'center') {
+                            ctx.textAlign = 'center';
+                            sx = W / 2;
+                            sy = H / 2;
+                        } else {
+                            // default fallback
+                            ctx.textAlign = 'right';
+                            sx = W - (15 * resScale);
+                            sy = H - (10 * resScale);
+                        }
+
+                        ctx.fillText(signatureText, sx, sy);
+                        ctx.restore();
+                    }
+
+                    // Reset Shadow
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 0;
+
+                    // 4. Progress Overlay (supports multiple designs & top/bottom placement)
+                    const overlayY = (progressPosition === 'top') ? padding : (H - overlayH - padding);
+
+                    // Background strip
+                    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+                    ctx.fillRect(0, overlayY, W, overlayH);
+
+                    // Time Text (vertically centered within overlay)
+                    const timeY = overlayY + (overlayH / 2) + (4 * resScale);
+                    ctx.font = `bold ${20 * resScale}px monospace`;
+                    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(formatTime(currentTime), 20 * resScale, timeY);
+                    ctx.textAlign = 'right';
+                    ctx.fillText(formatTime(duration), W - (20 * resScale), timeY);
+
+                    const progress = duration > 0 ? Math.max(0, Math.min(1, currentTime / duration)) : 0;
+
+                    if (progressStyle === 'linear') {
+                        const barH = 6 * resScale;
+                        const barY = overlayY + overlayH - (14 * resScale);
+                        const margin = 80 * resScale;
+                        const barTotalW = W - (margin * 2);
+                        const width = progress * barTotalW;
+
+                        // Background
+                        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+                        ctx.fillRect(margin, barY, barTotalW, barH);
+
+                        // Filled
+                        ctx.fillStyle = highlightEffect ? activeColor : '#10b981';
+                        ctx.fillRect(margin, barY, width, barH);
+                        if (glowEffect) {
+                            ctx.shadowColor = highlightEffect ? activeColor : '#10b981';
+                            ctx.shadowBlur = 12 * resScale;
+                            ctx.fillRect(margin, barY, width, barH);
+                            ctx.shadowBlur = 0;
+                        }
+
+                    } else if (progressStyle === 'circular') {
+                        const radius = 40 * resScale;
+                        const centerX = W - radius - (40 * resScale);
+                        const centerY = overlayY + (overlayH / 2);
+
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+                        ctx.lineWidth = 6 * resScale;
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.arc(centerX, centerY, radius, -Math.PI / 2, (-Math.PI / 2) + (Math.PI * 2 * progress));
+                        ctx.strokeStyle = highlightEffect ? activeColor : '#10b981';
+                        ctx.lineWidth = 8 * resScale;
+                        ctx.lineCap = 'round';
+                        if (glowEffect) {
+                            ctx.shadowColor = highlightEffect ? activeColor : '#10b981';
+                            ctx.shadowBlur = 14 * resScale;
+                        }
+                        ctx.stroke();
+
+                        // Time inside
+                        ctx.font = `bold ${14 * resScale}px monospace`;
+                        ctx.fillStyle = 'white';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(formatTime(currentTime), centerX, centerY);
+                        ctx.restore();
+
+                    } else if (progressStyle === 'dots') {
+                        const dots = 20;
+                        const dotSize = 6 * resScale;
+                        const gap = 8 * resScale;
+                        const totalW = (dots * dotSize) + ((dots - 1) * gap);
+                        let startX = (W - totalW) / 2;
+                        const y = overlayY + (overlayH / 2);
+                        const filled = Math.round(progress * dots);
+
+                        for (let i = 0; i < dots; i++) {
+                            ctx.beginPath();
+                            ctx.arc(startX + (i * (dotSize + gap)) + (dotSize / 2), y, dotSize / 2, 0, Math.PI * 2);
+                            ctx.fillStyle = i < filled ? (highlightEffect ? activeColor : '#10b981') : 'rgba(255,255,255,0.12)';
+                            ctx.fill();
+                        }
+
+                    } else if (progressStyle === 'gradient') {
+                        const margin = 80 * resScale;
+                        const barY = overlayY + overlayH - (18 * resScale);
+                        const barH = 10 * resScale;
+
+                        // Background
+                        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+                        ctx.fillRect(margin, barY, W - (margin * 2), barH);
+
+                        // Gradient fill
+                        const grad = ctx.createLinearGradient(margin, barY, margin + (W - (margin * 2)), barY);
+                        grad.addColorStop(0, highlightEffect ? activeColor : '#06b6d4');
+                        grad.addColorStop(1, '#7c3aed');
+                        ctx.fillStyle = grad;
+                        ctx.fillRect(margin, barY, progress * (W - (margin * 2)), barH);
+                    }
+
+
+
+                    if (isPlaying) {
+                        canvasRequestRef.current = requestAnimationFrame(draw);
+                    } else {
+                        canvasRequestRef.current = requestAnimationFrame(draw);
+                    }
+                };
+
+                canvasRequestRef.current = requestAnimationFrame(draw);
+                return () => cancelAnimationFrame(canvasRequestRef.current);
+            }, [image, videoBg, bgType, lyrics, scrollPos, fontSize, lineSpacing, fontFamily, textColor, activeColor, highlightEffect, alignment, scrollDirection, displayMode, glowEffect, bgZoom, currentTime, duration, isPlaying, quality, aspectRatio, showVisualizer, progressStyle, progressPosition, customQuoteAnimation, customQuoteAnimSpeed, animateLyrics, lyricsAnimationType, customQuoteRevealMode, customQuoteRevealSpeed, customQuoteRevealDirection, tone, showParticles, signatureText, signatureFontSize, signatureFontFamily, signatureColor, signatureOpacity, signaturePosition]);
+
+            useEffect(() => {
+                if (showVisualizer && audioRef.current) {
+                    try {
+                        if (!audioCtxRef.current) {
+                            const AudioContext = window.AudioContext || window.webkitAudioContext;
+                            audioCtxRef.current = new AudioContext();
+                        }
+
+                        if (audioCtxRef.current.state === 'suspended') {
+                            audioCtxRef.current.resume();
+                        }
+
+                        if (!analyserRef.current) {
+                            const analyser = audioCtxRef.current.createAnalyser();
+                            analyser.fftSize = 256;
+                            analyserRef.current = analyser;
+                            analyser.connect(audioCtxRef.current.destination);
+                        }
+
+                        if (!sourceRef.current) {
+                            const source = audioCtxRef.current.createMediaElementSource(audioRef.current);
+                            source.connect(analyserRef.current);
+                            sourceRef.current = source;
+                        }
+                    } catch (e) {
+                        console.error("Visualizer initialization failed:", e);
+                    }
+                }
+            }, [showVisualizer, audioSrc]);
+
+
+            // --- Recording Logic ---
+            const startRecording = async () => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+
+                // Get Quality Settings
+                const res = BASE_RESOLUTIONS[quality];
+
+                // Capture stream from canvas (60 FPS for smoothness)
+                const stream = canvas.captureStream(60);
+
+                // Add Audio Track
+                try {
+                    if (audioRef.current) {
+                        const audioElt = audioRef.current;
+                        const captureMethod = audioElt.captureStream || audioElt.mozCaptureStream || audioElt.webkitCaptureStream;
+                        if (captureMethod) {
+                            const audioStream = captureMethod.call(audioElt);
+                            if (audioStream && audioStream.getAudioTracks().length > 0) {
+                                stream.addTrack(audioStream.getAudioTracks()[0]);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Audio capture not supported or failed:", e);
+                }
+
+                const getSupportedMimeType = () => {
+                    const types = [
+                        "video/webm;codecs=vp9,opus",
+                        "video/webm;codecs=vp8,opus",
+                        "video/webm",
+                        "video/mp4"
+                    ];
+                    return types.find(type => MediaRecorder.isTypeSupported(type)) || "";
+                };
+
+                const mimeType = getSupportedMimeType();
+                if (!mimeType) {
+                    alert("Your browser does not support video recording.");
+                    return;
+                }
+                const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+
+                try {
+                    const mediaRecorder = new MediaRecorder(stream, {
+                        mimeType: mimeType,
+                        videoBitsPerSecond: BASE_RESOLUTIONS[quality].bitrate
+                    });
+
+                    mediaRecorderRef.current = mediaRecorder;
+                    chunksRef.current = [];
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) chunksRef.current.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        handleDownload();
+                        setIsRecording(false);
+                    };
+
+                    mediaRecorder.start();
+                    setIsRecording(true);
+
+                    // Auto Play
+                    resetScroll();
+                    setTimeout(() => setIsPlaying(true), 500);
+
+                } catch (err) {
+                    console.error("Error starting recording:", err);
+                    alert("Recording failed. Try using a newer browser.");
+                }
+            };
+
+            const stopRecording = () => {
+                if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+                    mediaRecorderRef.current.stop();
+                    setIsPlaying(false);
+                }
+            };
+
+            const handleDownload = () => {
+                if (chunksRef.current.length === 0) {
+                    alert("පළමුව වීඩියෝව record කර අවසන් කරන්න.");
+                    return;
+                }
+
+                // Android වලට ගැළපෙන සහය දක්වන format එකක් තෝරා ගැනීම
+                const blob = new Blob(chunksRef.current, { type: 'video/mp4' });
+                const url = URL.createObjectURL(blob);
+
+                // Download එක සිදු කරන link එක සෑදීම
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `VibeSync_Video_${Date.now()}.mp4`; // File එකේ නම
+
+                // මේක අනිවාර්යයි: link එක document එකට එකතු කරලා click කරවන්න ඕනේ
+                document.body.appendChild(link);
+                link.click();
+
+                // පසුව අයින් කරන්න
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                }, 200);
+            };
+
+            // --- Loop (Logic) ---
+            const animate = () => {
+                if (isPlaying) setScrollPos((prev) => prev + speed);
+                logicRequestRef.current = requestAnimationFrame(animate);
+            };
+
+            const handleSeek = (e) => {
+                const time = parseFloat(e.target.value);
+                if (!isNaN(time) && audioRef.current) {
+                    audioRef.current.currentTime = time;
+                    if (videoBg) {
+                        const trimmedVideoDuration = videoEnd - videoStart;
+                        if (trimmedVideoDuration > 0) {
+                            const offset = (time - audioStart) % trimmedVideoDuration;
+                            videoBg.currentTime = videoStart + (offset < 0 ? offset + trimmedVideoDuration : offset);
+                        }
+                    }
+                    setCurrentTime(time);
+
+                    // Sync Scroll Position relative to trimmed start
+                    if (speed > 0) {
+                        setScrollPos(Math.max(0, speed * 60 * (time - audioStart)));
+                    }
+                }
+            };
+
+            // Quick trim helpers for creative cropping
+            const setAudioStartToCurrent = () => {
+                const t = currentTime || 0;
+                setAudioStart(t);
+                if (audioRef.current) audioRef.current.currentTime = t;
+            };
+            const setAudioEndToCurrent = () => {
+                const t = currentTime || 0;
+                setAudioEnd(t);
+            };
+
+            const nudgeAudioStart = (delta) => {
+                setAudioStart(prev => Math.max(0, Math.min(prev + delta, audioEnd - 0.1)));
+            };
+            const nudgeAudioEnd = (delta) => {
+                setAudioEnd(prev => Math.max(audioStart + 0.1, Math.min(prev + delta, duration)));
+            };
+
+            const applyPresetTrim = (presetSeconds) => {
+                const end = Math.min(duration, presetSeconds);
+                setAudioStart(0);
+                setAudioEnd(end);
+                if (audioRef.current) audioRef.current.currentTime = 0;
+            };
+
+            const centerTrimAroundCurrent = (lengthSeconds) => {
+                const half = lengthSeconds / 2;
+                let start = Math.max(0, (currentTime || 0) - half);
+                let end = Math.min(duration, start + lengthSeconds);
+                if (end - start < lengthSeconds) start = Math.max(0, end - lengthSeconds);
+                setAudioStart(start);
+                setAudioEnd(end);
+                if (audioRef.current) audioRef.current.currentTime = start;
+            };
+
+            // Export trimmed audio as WAV blob and provide download link
+            const exportTrimmedAudio = async () => {
+                if (!audioSrc) return alert('No audio loaded');
+                try {
+                    const resp = await fetch(audioSrc);
+                    const arrayBuffer = await resp.arrayBuffer();
+                    const AudioCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext || window.AudioContext || window.webkitAudioContext;
+                    const decodeCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const decoded = await decodeCtx.decodeAudioData(arrayBuffer.slice(0));
+                    const sRate = decoded.sampleRate;
+                    const startSample = Math.floor((audioStart || 0) * sRate);
+                    const endSample = Math.floor((audioEnd || decoded.duration) * sRate);
+                    const frameCount = endSample - startSample;
+                    const newBuffer = decodeCtx.createBuffer(decoded.numberOfChannels, frameCount, sRate);
+                    for (let ch = 0; ch < decoded.numberOfChannels; ch++) {
+                        const src = decoded.getChannelData(ch).subarray(startSample, endSample);
+                        newBuffer.copyToChannel(src, ch, 0);
+                    }
+
+                    // encode WAV
+                    const wavBlob = audioBufferToWavBlob(newBuffer);
+                    const url = URL.createObjectURL(wavBlob);
+                    setDownloadUrl(url);
+                    // auto-download
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'trimmed-audio.wav';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } catch (err) {
+                    console.error('Export failed', err);
+                    alert('Failed to export trimmed audio');
+                }
+            };
+
+            const audioBufferToWavBlob = (buffer) => {
+                const numOfChan = buffer.numberOfChannels;
+                const sampleRate = buffer.sampleRate;
+                const format = 1; // PCM
+                const bitsPerSample = 16;
+                const resultBuffer = interleaveChannels(buffer);
+
+                const bytesPerSample = bitsPerSample / 8;
+                const blockAlign = numOfChan * bytesPerSample;
+                const byteLength = 44 + resultBuffer.length * bytesPerSample;
+                const wavBuffer = new ArrayBuffer(byteLength);
+                const view = new DataView(wavBuffer);
+
+                /* RIFF identifier */
+                writeString(view, 0, 'RIFF');
+                view.setUint32(4, 36 + resultBuffer.length * bytesPerSample, true);
+                writeString(view, 8, 'WAVE');
+                writeString(view, 12, 'fmt ');
+                view.setUint32(16, 16, true);
+                view.setUint16(20, format, true);
+                view.setUint16(22, numOfChan, true);
+                view.setUint32(24, sampleRate, true);
+                view.setUint32(28, sampleRate * blockAlign, true);
+                view.setUint16(32, blockAlign, true);
+                view.setUint16(34, bitsPerSample, true);
+                writeString(view, 36, 'data');
+                view.setUint32(40, resultBuffer.length * bytesPerSample, true);
+
+                // write PCM samples
+                let offset = 44;
+                for (let i = 0; i < resultBuffer.length; i++, offset += 2) {
+                    const s = Math.max(-1, Math.min(1, resultBuffer[i]));
+                    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+                }
+
+                return new Blob([view], { type: 'audio/wav' });
+            };
+
+            const interleaveChannels = (buffer) => {
+                const len = buffer.length * buffer.numberOfChannels;
+                const result = new Float32Array(len);
+                let index = 0;
+                const channels = [];
+                for (let i = 0; i < buffer.numberOfChannels; i++) channels.push(buffer.getChannelData(i));
+                for (let i = 0; i < buffer.length; i++) {
+                    for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+                        result[index++] = channels[ch][i] || 0;
+                    }
+                }
+                return result;
+            };
+
+            const writeString = (view, offset, string) => {
+                for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+            };
+
+            useEffect(() => {
+                logicRequestRef.current = requestAnimationFrame(animate);
+                return () => cancelAnimationFrame(logicRequestRef.current);
+            }, [isPlaying, speed]);
+
+            useEffect(() => {
+                if (audioRef.current) {
+                    if (isPlaying) {
+                        // Ensure starts at trimmed start
+                        if (audioRef.current.currentTime < audioStart) {
+                            audioRef.current.currentTime = audioStart;
+                        }
+
+                        // Initialize Audio Context for Visualizer
+                        if (showVisualizer) {
+                            try {
+                                if (!audioCtxRef.current) {
+                                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                                    audioCtxRef.current = new AudioContext();
+                                }
+
+                                if (audioCtxRef.current.state === 'suspended') {
+                                    audioCtxRef.current.resume();
+                                }
+
+                                if (!analyserRef.current) {
+                                    const analyser = audioCtxRef.current.createAnalyser();
+                                    analyser.fftSize = 256;
+                                    analyserRef.current = analyser;
+                                }
+
+                                if (!sourceRef.current && audioRef.current) {
+                                    const source = audioCtxRef.current.createMediaElementSource(audioRef.current);
+                                    source.connect(analyserRef.current);
+                                    sourceRef.current = source;
+                                }
+                            } catch (e) {
+                                console.error("Visualizer initialization failed:", e);
+                            }
+                        }
+
+                        // Start reveal synced to playback start when a custom quote reveal is enabled
+                        const setRevealFromAudio = () => {
+                            try {
+                                if (customQuote && customQuote.trim().length > 0 && customQuoteRevealMode && customQuoteRevealMode !== 'none') {
+                                    customQuoteRevealStartRef.current = (audioRef.current && !isNaN(audioRef.current.currentTime)) ? audioRef.current.currentTime : (Date.now() / 1000);
+                                }
+                            } catch (e) { }
+                        };
+
+                        const setRevealFromVideo = () => {
+                            try {
+                                if (customQuote && customQuote.trim().length > 0 && customQuoteRevealMode && customQuoteRevealMode !== 'none') {
+                                    customQuoteRevealStartRef.current = (videoBg && !isNaN(videoBg.currentTime)) ? videoBg.currentTime : (Date.now() / 1000);
+                                }
+                            } catch (e) { }
+                        };
+
+                        if (audioRef.current) {
+                            const p = audioRef.current.play();
+                            if (p && p.then) {
+                                p.then(() => setRevealFromAudio()).catch(() => setRevealFromAudio());
+                            } else {
+                                setRevealFromAudio();
+                            }
+                            // sync video if present to audio position
+                            if (videoBg) {
+                                try {
+                                    const trimmedVideoDuration = videoEnd - videoStart;
+                                    if (trimmedVideoDuration > 0) {
+                                        const offset = (audioRef.current.currentTime - audioStart) % trimmedVideoDuration;
+                                        videoBg.currentTime = videoStart + (offset < 0 ? offset + trimmedVideoDuration : offset);
+                                    }
+                                } catch (e) { }
+                                const pv = videoBg.play();
+                                if (pv && pv.then) { pv.catch(() => { }); }
+                            }
+                        } else if (videoBg) {
+                            const pv = videoBg.play();
+                            if (pv && pv.then) {
+                                pv.then(() => setRevealFromVideo()).catch(() => setRevealFromVideo());
+                            } else {
+                                setRevealFromVideo();
+                            }
+                        } else {
+                            // No media: use wall-clock start
+                            if (customQuote && customQuote.trim().length > 0 && customQuoteRevealMode && customQuoteRevealMode !== 'none') {
+                                customQuoteRevealStartRef.current = Date.now() / 1000;
+                            }
+                        }
+                    } else {
+                        audioRef.current.pause();
+                        if (videoBg) videoBg.pause();
+                    }
+                }
+
+                // Auto-stop recording or playback if song reaches trimmed end
+                if (isPlaying && (currentTime >= audioEnd || currentTime < audioStart - 1)) {
+                    setIsPlaying(false);
+                    if (isRecording) stopRecording();
+                }
+            }, [isPlaying, currentTime, audioStart, audioEnd, isRecording, videoBg]);
+
+            const resetScroll = () => {
+                setScrollPos(0);
+                setIsPlaying(false);
+                if (audioRef.current) {
+                    audioRef.current.pause();
+                    audioRef.current.currentTime = audioStart;
+                    if (videoBg) videoBg.currentTime = videoStart;
+                }
+            };
+
+            const formatTime = (time) => {
+                if (!time) return "0:00";
+                const m = Math.floor(time / 60);
+                const s = Math.floor(time % 60);
+                return `${m}:${s < 10 ? '0' : ''}${s}`;
+            };
+
+            return (
+                <div className="min-h-screen p-3 md:p-8 flex items-start justify-center">
+                    <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8">
+
+                        {/* LEFT PANEL: CONTROLS */}
+                        <div className="lg:col-span-4 order-2 lg:order-1 space-y-4 md:space-y-6 px-1 md:px-0">
+
+                            {/* Header */}
+                            <div className="glass-panel p-4 md:p-6 rounded-2xl md:rounded-3xl flex justify-between items-center bg-gradient-to-br from-zinc-800/80 to-zinc-900/80">
+                                <div className="flex items-center gap-4">
+                                    <div className="relative group/logo">
+                                        <div className="absolute -inset-3 bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-[2rem] blur-2xl opacity-0 group-hover/logo:opacity-100 transition duration-700"></div>
+                                        <div className="relative w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center shadow-2xl border border-white/10 overflow-hidden ring-1 ring-white/10">
+                                            <svg viewBox="0 0 100 100" className="w-12 h-12 relative z-10" xmlns="http://www.w3.org/2000/svg">
+                                                <defs>
+                                                    <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                        <stop offset="0%" style={{ stopColor: '#10b981', stopOpacity: 1 }} />
+                                                        <stop offset="100%" style={{ stopColor: '#3b82f6', stopOpacity: 1 }} />
+                                                    </linearGradient>
+                                                </defs>
+
+                                                {/* Audio Waveform Bars */}
+                                                <g transform="translate(10, 50)">
+                                                    <rect x="0" y="-10" width="6" height="20" rx="3" fill="url(#waveGrad)" className="animate-pulse" style={{ animationDuration: '0.8s' }} />
+                                                    <rect x="12" y="-20" width="6" height="40" rx="3" fill="url(#waveGrad)" className="animate-pulse" style={{ animationDuration: '1.2s' }} />
+                                                    <rect x="24" y="-30" width="6" height="60" rx="3" fill="url(#waveGrad)" className="animate-pulse" style={{ animationDuration: '0.6s' }} />
+                                                    <rect x="36" y="-15" width="6" height="30" rx="3" fill="url(#waveGrad)" className="animate-pulse" style={{ animationDuration: '0.9s' }} />
+                                                    <rect x="48" y="-25" width="6" height="50" rx="3" fill="url(#waveGrad)" className="animate-pulse" style={{ animationDuration: '1.1s' }} />
+                                                    <rect x="60" y="-12" width="6" height="24" rx="3" fill="url(#waveGrad)" className="animate-pulse" style={{ animationDuration: '0.7s' }} />
+                                                    <rect x="72" y="-18" width="6" height="36" rx="3" fill="url(#waveGrad)" className="animate-pulse" style={{ animationDuration: '1.3s' }} />
+                                                </g>
+
+                                                {/* Sparkle Nodes */}
+                                                <circle cx="37" cy="20" r="2" fill="white" opacity="0.4" className="animate-ping" />
+                                                <circle cx="61" cy="75" r="1.5" fill="white" opacity="0.3" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h1 className="text-3xl font-black text-white tracking-tighter mb-0.5 flex items-center gap-1">
+                                            VibeSync <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">PRO</span>
+                                        </h1>
+                                        <p className="text-zinc-500 text-[10px] uppercase tracking-[0.2em] font-black">Digital Lyrics Visualizer</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Download / Actions */}
+                            <div className="glass-panel p-4 rounded-2xl md:rounded-3xl space-y-3">
+
+                                {/* Platform Presets */}
+                                <div className="space-y-2">
+                                    <label className="block text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Quick Resize (Presets)</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <button
+                                            onClick={() => setAspectRatio('16:9')}
+                                            className={`p-2 rounded-xl border text-[10px] font-bold transition-all flex flex-col items-center gap-1 ${aspectRatio === '16:9' ? 'bg-red-500/20 border-red-500/50 text-red-300' : 'bg-zinc-800/30 border-zinc-700/30 text-zinc-500 hover:text-zinc-300'}`}
+                                        >
+                                            <Icon path={<path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33zM9.75 15.02V8.48L15.45 11.75l-5.7 3.27z" />} />
+                                            <span>YouTube</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setAspectRatio('9:16')}
+                                            className={`p-2 rounded-xl border text-[10px] font-bold transition-all flex flex-col items-center gap-1 ${aspectRatio === '9:16' ? 'bg-blue-500/20 border-blue-500/50 text-blue-300' : 'bg-zinc-800/30 border-zinc-700/30 text-zinc-500 hover:text-zinc-300'}`}
+                                        >
+                                            <Icon path={<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z" />} />
+                                            <span>TikTok</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setAspectRatio('1:1')}
+                                            className={`p-2 rounded-xl border text-[10px] font-bold transition-all flex flex-col items-center gap-1 ${aspectRatio === '1:1' ? 'bg-pink-500/20 border-pink-500/50 text-pink-300' : 'bg-zinc-800/30 border-zinc-700/30 text-zinc-500 hover:text-zinc-300'}`}
+                                        >
+                                            <Icon path={<><rect width="20" height="20" x="2" y="2" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" x2="17.51" y1="6.5" y2="6.5" /></>} />
+                                            <span>Instagram</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="block text-[10px] text-zinc-500 uppercase tracking-wider">Quality</label>
+                                        <select
+                                            value={quality}
+                                            onChange={(e) => setQuality(e.target.value)}
+                                            className="w-full bg-zinc-800/50 text-white p-3 rounded-2xl text-xs font-bold border border-zinc-700/50 outline-none focus:border-emerald-500/50"
+                                        >
+                                            {Object.entries(BASE_RESOLUTIONS).map(([key, val]) => (
+                                                <option key={key} value={key}>{val.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="block text-[10px] text-zinc-500 uppercase tracking-wider">Frame Size</label>
+                                        <select
+                                            value={aspectRatio}
+                                            onChange={(e) => setAspectRatio(e.target.value)}
+                                            className="w-full bg-zinc-800/50 text-white p-3 rounded-2xl text-xs font-bold border border-zinc-700/50 outline-none focus:border-emerald-500/50"
+                                        >
+                                            {Object.entries(RATIOS).map(([key, val]) => (
+                                                <option key={key} value={key}>{val.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={isRecording ? stopRecording : startRecording}
+                                    className={`w-full py-4 rounded-2xl font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${isRecording ? 'bg-red-500 animate-pulse text-white' : 'bg-white text-black hover:bg-zinc-200'}`}
+                                >
+                                    <Icon path={isRecording ? <path d="M21 12H3" /> : <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />} />
+                                    {isRecording ? 'STOP' : 'DOWNLOAD'}
+                                </button>
+
+                                <p className="text-[10px] text-zinc-500 text-center">
+                                    {isRecording ? "Recording... Playback will stop automatically." : `Ready to record in ${BASE_RESOLUTIONS[quality].label}`}
+                                </p>
+                            </div>
+
+                            {/* Upload Section */}
+                            <div className="glass-panel p-4 md:p-6 rounded-2xl md:rounded-3xl space-y-4">
+                                <h2 className="text-sm font-bold text-zinc-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <span className="bg-emerald-500/20 text-emerald-400 p-1.5 rounded-lg"><Icon path={<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />} /></span>
+                                    Upload Assets
+                                </h2>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    {/* Image Upload Card */}
+                                    <div className="relative group">
+                                        <div
+                                            onClick={() => fileInputImageRef.current.click()}
+                                            className={`cursor-pointer overflow-hidden bg-zinc-800/50 hover:bg-zinc-700/50 border transition-all duration-300 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 h-32 ${bgType === 'image' ? 'border-emerald-500/50 ring-1 ring-emerald-500/30' : 'border-zinc-700/50'}`}
+                                        >
+                                            <div className={`p-3 rounded-full shadow-lg group-hover:scale-110 transition-transform ${bgType === 'image' ? 'bg-emerald-500' : 'bg-gradient-to-br from-indigo-500 to-purple-600'}`}>
+                                                <Icon path={<path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />} />
+                                            </div>
+                                            <span className="text-xs font-semibold text-zinc-300">Background Photo</span>
+                                            {image && <div className="absolute top-2 right-2 w-3 h-3 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>}
+                                        </div>
+                                        {image && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setImage(null); if (bgType === 'image') setBgType(videoBg ? 'video' : 'none'); }}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors z-10"
+                                            >
+                                                ✕
+                                            </button>
+                                        )}
+                                    </div>
+                                    <input type="file" ref={fileInputImageRef} onChange={handleImageChange} accept="image/*" className="hidden" />
+
+                                    {/* Video Upload Card */}
+                                    <div className="relative group">
+                                        <div
+                                            onClick={() => fileInputVideoRef.current.click()}
+                                            className={`cursor-pointer overflow-hidden bg-zinc-800/50 hover:bg-zinc-700/50 border transition-all duration-300 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 h-32 ${bgType === 'video' ? 'border-blue-500/50 ring-1 ring-blue-500/30' : 'border-zinc-700/50'}`}
+                                        >
+                                            <div className={`p-3 rounded-full shadow-lg group-hover:scale-110 transition-transform ${bgType === 'video' ? 'bg-blue-500' : 'bg-gradient-to-br from-blue-500 to-cyan-600'}`}>
+                                                <Icon path={<><path d="m22 8-6 4 6 4V8Z" /><rect width="14" height="12" x="2" y="6" rx="2" ry="2" /></>} />
+                                            </div>
+                                            <span className="text-xs font-semibold text-zinc-300">Background Video</span>
+                                            {videoBg && <div className="absolute top-2 right-2 w-3 h-3 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>}
+                                        </div>
+                                        {videoBg && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setVideoBg(null); if (bgType === 'video') setBgType(image ? 'image' : 'none'); }}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors z-10"
+                                            >
+                                                ✕
+                                            </button>
+                                        )}
+                                    </div>
+                                    <input type="file" ref={fileInputVideoRef} onChange={handleVideoBgChange} accept="video/*" className="hidden" />
+
+                                    {videoBg && bgType === 'video' && (
+                                        <div className="col-span-2 bg-zinc-900/40 p-4 rounded-2xl border border-zinc-700/30 space-y-4">
+                                            <div className="flex justify-between items-center text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
+                                                <span>Trim Video</span>
+                                                <span className="text-blue-400">Duration: {formatTime(videoEnd - videoStart)}</span>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <div className="flex justify-between text-[10px] mb-1">
+                                                        <span className="text-zinc-400">START</span>
+                                                        <span className="font-mono">{formatTime(videoStart)}</span>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max={videoEnd}
+                                                        step="0.1"
+                                                        value={videoStart}
+                                                        onChange={(e) => {
+                                                            const val = parseFloat(e.target.value);
+                                                            setVideoStart(val);
+                                                            if (videoBg) videoBg.currentTime = val;
+                                                        }}
+                                                        className="w-full accent-blue-500 h-1.5"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <div className="flex justify-between text-[10px] mb-1">
+                                                        <span className="text-zinc-400">END</span>
+                                                        <span className="font-mono">{formatTime(videoEnd)}</span>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min={videoStart}
+                                                        max={videoBg.duration}
+                                                        step="0.1"
+                                                        value={videoEnd}
+                                                        onChange={(e) => setVideoEnd(parseFloat(e.target.value))}
+                                                        className="w-full accent-blue-500 h-1.5"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Type Toggle (if both uploaded) */}
+                                    {image && videoBg && (
+                                        <div className="col-span-2 flex bg-zinc-900/50 p-1 rounded-xl border border-zinc-700/50">
+                                            <button
+                                                onClick={() => setBgType('image')}
+                                                className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${bgType === 'image' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                            >
+                                                USE PHOTO
+                                            </button>
+                                            <button
+                                                onClick={() => setBgType('video')}
+                                                className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${bgType === 'video' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                            >
+                                                USE VIDEO
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Audio Upload Card */}
+                                    <div className="col-span-2 relative group">
+                                        <div
+                                            onClick={() => fileInputAudioRef.current.click()}
+                                            className="cursor-pointer overflow-hidden bg-zinc-800/50 hover:bg-zinc-700/50 border border-zinc-700/50 hover:border-amber-500/50 transition-all duration-300 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 h-24"
+                                        >
+                                            <div className="p-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full shadow-lg group-hover:scale-110 transition-transform">
+                                                <Icon path={<path d="M9 18V5l12-2v13" />} />
+                                            </div>
+                                            <span className="text-xs font-semibold text-zinc-300">Choose Song / Video Sound</span>
+                                            {audioSrc && <div className="absolute top-2 right-2 w-3 h-3 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>}
+                                        </div>
+                                        {audioSrc && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setAudioSrc(null); setDuration(0); setCurrentTime(0); setIsPlaying(false); }}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors z-10"
+                                            >
+                                                ✕
+                                            </button>
+                                        )}
+                                    </div>
+                                    <input type="file" ref={fileInputAudioRef} onChange={handleAudioChange} accept="audio/*,video/*" className="hidden" />
+                                    <audio ref={audioRef} src={audioSrc} crossOrigin="anonymous" onLoadedMetadata={handleLoadedMetadata} onTimeUpdate={handleTimeUpdate} className="hidden" />
+                                </div>
+
+                                {audioSrc && (
+                                    <div className="bg-zinc-900/40 p-4 rounded-2xl border border-zinc-700/30 space-y-4">
+                                        <div className="flex justify-between items-center text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
+                                            <span>Trim Audio (Crop)</span>
+                                            <span className="text-amber-400">Duration: {formatTime(audioEnd - audioStart)}</span>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <div>
+                                                <div className="flex justify-between text-[10px] mb-1">
+                                                    <span className="text-zinc-400">START POINT</span>
+                                                    <span className="font-mono">{formatTime(audioStart)}</span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max={audioEnd}
+                                                    step="0.1"
+                                                    value={audioStart}
+                                                    onChange={(e) => {
+                                                        const val = parseFloat(e.target.value);
+                                                        setAudioStart(val);
+                                                        if (audioRef.current) audioRef.current.currentTime = val;
+                                                    }}
+                                                    className="w-full accent-amber-500 h-1.5"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <div className="flex justify-between text-[10px] mb-1">
+                                                    <span className="text-zinc-400">END POINT</span>
+                                                    <span className="font-mono">{formatTime(audioEnd)}</span>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min={audioStart}
+                                                    max={duration}
+                                                    step="0.1"
+                                                    value={audioEnd}
+                                                    onChange={(e) => setAudioEnd(parseFloat(e.target.value))}
+                                                    className="w-full accent-amber-500 h-1.5"
+                                                />
+                                            </div>
+
+                                            <div className="mt-3 grid grid-cols-2 gap-2">
+                                                <div className="flex items-center gap-2">
+                                                    <button onClick={setAudioStartToCurrent} className="px-3 py-2 bg-zinc-800/40 rounded text-xs">Set Start = Now</button>
+                                                    <button onClick={() => nudgeAudioStart(-1)} className="px-2 py-2 bg-zinc-800/30 rounded text-xs">-1s</button>
+                                                    <button onClick={() => nudgeAudioStart(1)} className="px-2 py-2 bg-zinc-800/30 rounded text-xs">+1s</button>
+                                                    <button onClick={() => nudgeAudioStart(5)} className="px-2 py-2 bg-zinc-800/30 rounded text-xs">+5s</button>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <button onClick={setAudioEndToCurrent} className="px-3 py-2 bg-zinc-800/40 rounded text-xs">Set End = Now</button>
+                                                    <button onClick={() => nudgeAudioEnd(-1)} className="px-2 py-2 bg-zinc-800/30 rounded text-xs">-1s</button>
+                                                    <button onClick={() => nudgeAudioEnd(1)} className="px-2 py-2 bg-zinc-800/30 rounded text-xs">+1s</button>
+                                                    <button onClick={() => nudgeAudioEnd(-5)} className="px-2 py-2 bg-zinc-800/30 rounded text-xs">-5s</button>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-2 flex flex-wrap gap-2 items-center">
+                                                <button onClick={() => applyPresetTrim(30)} className="px-3 py-2 bg-amber-500 text-black rounded text-xs">Trim 0–30s</button>
+                                                <button onClick={() => applyPresetTrim(60)} className="px-3 py-2 bg-amber-500 text-black rounded text-xs">Trim 0–60s</button>
+                                                <button onClick={() => centerTrimAroundCurrent(30)} className="px-3 py-2 bg-emerald-500 text-black rounded text-xs">Center ±15s</button>
+                                                <button onClick={() => centerTrimAroundCurrent(60)} className="px-3 py-2 bg-emerald-500 text-black rounded text-xs">Center ±30s</button>
+                                                <button onClick={() => { setAudioStart(0); setAudioEnd(duration); }} className="px-3 py-2 bg-zinc-700 text-white rounded text-xs">Reset Trim</button>
+                                                <button onClick={exportTrimmedAudio} className="px-3 py-2 bg-blue-500 text-white rounded text-xs">Export Trim (WAV)</button>
+                                                {downloadUrl && (
+                                                    <a href={downloadUrl} download="trimmed-audio.wav" className="px-3 py-2 bg-zinc-800 text-white rounded text-xs">Download</a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Lyrics Input */}
+                            <div className="glass-panel p-4 md:p-6 rounded-2xl md:rounded-3xl">
+                                <h2 className="text-sm font-bold text-zinc-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <span className="bg-blue-500/20 text-blue-400 p-1.5 rounded-lg"><Icon path={<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />} /></span>
+                                    Lyrics (පද පේළි)
+                                </h2>
+                                <textarea
+                                    className="w-full h-32 bg-zinc-900/50 border border-zinc-700/50 rounded-xl p-4 text-sm outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all resize-none font-mono text-zinc-300 placeholder-zinc-600"
+                                    value={lyrics}
+                                    onChange={(e) => setLyrics(e.target.value)}
+                                    placeholder="Paste your lyrics here..."
+                                />
+
+
+                            </div>
+
+                            {/* Custom Wadan & Emojis Panel */}
+                            <div className="glass-panel p-4 rounded-xl mb-4">
+                                <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
+                                    <Icon path={<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />} />
+                                    Custom Wadan & Emojis
+                                </h3>
+
+                                <div className="flex flex-col gap-2">
+                                    <textarea
+                                        rows={3}
+                                        placeholder="ඔයාගේ වදන මෙතන type කරන්න..."
+                                        className="bg-black/40 border border-white/10 p-2 rounded text-sm w-full outline-none focus:border-emerald-500 resize-none"
+                                        value={customQuote}
+                                        onChange={(e) => setCustomQuote(e.target.value)}
+                                        onKeyDown={handleQuoteKeyDown}
+                                    />
+                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-[10px] text-zinc-400">Color</label>
+                                                <input type="color" value={customQuoteColor} onChange={(e) => setCustomQuoteColor(e.target.value)} className="w-8 h-8 p-0 border-0" />
+                                                <label className="text-[10px] text-zinc-400 ml-2">Size</label>
+                                                <input type="range" min="12" max="80" value={customQuoteFontSize} onChange={(e) => setCustomQuoteFontSize(parseInt(e.target.value))} className="flex-1" />
+                                                <div className="text-xs w-10 text-right">{customQuoteFontSize}px</div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-[10px] text-zinc-400">Font</label>
+                                                <select value={customQuoteFontFamily} onChange={(e) => setCustomQuoteFontFamily(e.target.value)} className="bg-zinc-800/40 p-1 rounded text-xs border border-zinc-700/30">
+                                                    {fonts.map(f => <option key={f.value} value={f.value}>{f.name}</option>)}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-[10px] text-zinc-400">Style</label>
+                                                <button onClick={() => setCustomQuoteFontStyle(customQuoteFontStyle === 'italic' ? 'normal' : 'italic')} className={`px-2 py-1 rounded text-xs ${customQuoteFontStyle === 'italic' ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-400'}`}>Italic</button>
+                                                <button onClick={() => setCustomQuoteFontWeight(customQuoteFontWeight === '700' ? '400' : '700')} className={`px-2 py-1 rounded text-xs ${customQuoteFontWeight === '700' ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-400'}`}>Bold</button>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-[10px] text-zinc-400 w-10">Horiz</label>
+                                                    <div className="flex bg-zinc-800/40 rounded-lg p-0.5 border border-zinc-700/30 flex-1">
+                                                        {['left', 'center', 'right'].map((pos) => (
+                                                            <button
+                                                                key={pos}
+                                                                onClick={() => setCustomQuoteHoriz(pos)}
+                                                                className={`flex-1 py-1 flex items-center justify-center rounded-md transition-all ${customQuoteHoriz === pos ? 'bg-zinc-600 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                                            >
+                                                                {pos === 'left' && <Icon path={<path d="M17 10H3M21 6H3M21 14H3M17 18H3" />} />}
+                                                                {pos === 'center' && <Icon path={<path d="M21 6H3M17 10H7M21 14H3M17 18H7" />} />}
+                                                                {pos === 'right' && <Icon path={<path d="M21 10H7M21 6H3M21 14H3M21 18H7" />} />}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-2">
+                                                    <label className="text-[10px] text-zinc-400 w-10">Vert</label>
+                                                    <div className="flex bg-zinc-800/40 rounded-lg p-0.5 border border-zinc-700/30 flex-1">
+                                                        {['top', 'middle', 'bottom'].map((pos) => (
+                                                            <button
+                                                                key={pos}
+                                                                onClick={() => setCustomQuoteVert(pos)}
+                                                                className={`flex-1 py-1 flex items-center justify-center rounded-md transition-all ${customQuoteVert === pos ? 'bg-zinc-600 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                                            >
+                                                                {pos === 'top' && <Icon path={<path d="M12 21V3M5 10l7-7 7 7" />} />}
+                                                                {pos === 'middle' && <Icon path={<path d="M21 12H3" />} />}
+                                                                {pos === 'bottom' && <Icon path={<path d="M12 3v18M5 14l7 7 7-7" />} />}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-2 mt-1">
+                                        {commonEmojis.map(emoji => (
+                                            <button
+                                                key={emoji}
+                                                onClick={() => setCustomQuote(prev => prev + emoji)}
+                                                className="hover:scale-125 transition-transform p-1 bg-white/5 rounded"
+                                            >
+                                                {emoji}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="mt-3 border-t border-zinc-700/20 pt-3">
+                                        <label className="text-[10px] text-zinc-400 mb-1 block">Quote Animation</label>
+                                        <div className="flex items-center gap-2">
+                                            <select value={customQuoteAnimation} onChange={(e) => setCustomQuoteAnimation(e.target.value)} className="bg-zinc-800/40 p-1 rounded text-xs border border-zinc-700/30">
+                                                <option value="none">None</option>
+                                                <option value="fade">Fade</option>
+                                                <option value="slide">Slide</option>
+                                                <option value="pulse">Pulse</option>
+                                            </select>
+                                            <label className="text-[10px] text-zinc-400">Speed</label>
+                                            <input type="range" min="0.2" max="3" step="0.1" value={customQuoteAnimSpeed} onChange={(e) => setCustomQuoteAnimSpeed(parseFloat(e.target.value))} className="flex-1" />
+                                            <div className="text-xs w-10 text-right">{customQuoteAnimSpeed.toFixed(1)}x</div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <label className="text-[10px] text-zinc-400">Animate Lyrics</label>
+                                            <button onClick={() => setAnimateLyrics(!animateLyrics)} className={`px-2 py-1 rounded text-xs ${animateLyrics ? 'bg-emerald-500 text-black' : 'bg-zinc-800 text-zinc-400'}`}>{animateLyrics ? 'ON' : 'OFF'}</button>
+                                            <select value={lyricsAnimationType} onChange={(e) => setLyricsAnimationType(e.target.value)} className="bg-zinc-800/40 p-1 rounded text-xs border border-zinc-700/30 ml-2">
+                                                <option value="none">None</option>
+                                                <option value="pulse">Pulse</option>
+                                                <option value="wave">Wave</option>
+                                            </select>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <label className="text-[10px] text-zinc-400">Enter Behavior</label>
+                                            <button onClick={() => setEnterInsertAbove(!enterInsertAbove)} className={`px-2 py-1 rounded text-xs ${enterInsertAbove ? 'bg-emerald-500 text-black' : 'bg-zinc-800 text-zinc-400'}`}>{enterInsertAbove ? 'Insert Above' : 'Normal'}</button>
+                                            <div className="text-[10px] text-zinc-500 ml-2">Toggle whether Enter inserts a new blank line above the caret (Insert Above) or uses normal behavior (Normal).</div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Signature & Credit Panel */}
+                            <div className="glass-panel p-4 md:p-6 rounded-2xl md:rounded-3xl mb-4">
+                                <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
+                                    <Icon path={<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" />} />
+                                    Signature & Credit (නම ඇතුළත් කිරීම)
+                                </h3>
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="text-[10px] text-zinc-400 mb-1 block">Your Name / Signature</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Ex: Created by Machan"
+                                            className="bg-black/40 border border-white/10 p-2 rounded text-sm w-full outline-none focus:border-blue-500"
+                                            value={signatureText}
+                                            onChange={(e) => setSignatureText(e.target.value)}
+                                        />
+                                        <div className="flex flex-wrap gap-2 mt-2">
+                                            {['❤️', '✨', '🎸', '🔥', '👑', '🕊️', '🌹', '🎧', '⚡', '🎵'].map(emoji => (
+                                                <button
+                                                    key={emoji}
+                                                    onClick={() => setSignatureText(prev => prev + emoji)}
+                                                    className="hover:scale-125 transition-transform p-1 bg-white/5 rounded text-xs"
+                                                >
+                                                    {emoji}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {/* Size + Opacity */}
+                                        <div className="flex items-center gap-3">
+                                            <label className="text-[10px] text-zinc-400 w-12 shrink-0">Size</label>
+                                            <input type="range" min="8" max="60" value={signatureFontSize} onChange={(e) => setSignatureFontSize(parseInt(e.target.value))} className="flex-1" />
+                                            <span className="text-xs w-10 text-right">{signatureFontSize}px</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <label className="text-[10px] text-zinc-400 w-12 shrink-0">Opacity</label>
+                                            <input type="range" min="0.1" max="1" step="0.05" value={signatureOpacity} onChange={(e) => setSignatureOpacity(parseFloat(e.target.value))} className="flex-1" />
+                                            <span className="text-xs w-10 text-right">{(signatureOpacity * 100).toFixed(0)}%</span>
+                                        </div>
+
+                                        {/* Color Picker — prominent row */}
+                                        <div className="flex items-center gap-3">
+                                            <label className="text-[10px] text-zinc-400 w-12 shrink-0">Color</label>
+                                            <label className="flex items-center gap-2 cursor-pointer flex-1">
+                                                <span
+                                                    style={{ background: signatureColor }}
+                                                    className="w-10 h-8 rounded-lg border-2 border-white/20 shadow-md block shrink-0"
+                                                />
+                                                <input
+                                                    type="color"
+                                                    value={signatureColor}
+                                                    onChange={(e) => setSignatureColor(e.target.value)}
+                                                    className="opacity-0 w-0 h-0 absolute"
+                                                />
+                                                <span className="text-xs text-zinc-300 font-mono">{signatureColor}</span>
+                                            </label>
+                                            {/* Quick preset colors */}
+                                            {['#ffffff', '#fbbf24', '#34d399', '#f87171', '#a78bfa', '#fb923c'].map(c => (
+                                                <button
+                                                    key={c}
+                                                    onClick={() => setSignatureColor(c)}
+                                                    style={{ background: c }}
+                                                    className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${signatureColor === c ? 'border-white scale-110' : 'border-white/20'}`}
+                                                />
+                                            ))}
+                                        </div>
+
+                                        {/* Position + Font */}
+                                        <div className="flex items-center gap-3">
+                                            <label className="text-[10px] text-zinc-400 w-12 shrink-0">Pos</label>
+                                            <select value={signaturePosition} onChange={(e) => setSignaturePosition(e.target.value)} className="bg-zinc-800/40 p-1 rounded text-[10px] border border-zinc-700/30 flex-1">
+                                                <option value="bottom-right">Bottom Right</option>
+                                                <option value="bottom-left">Bottom Left</option>
+                                                <option value="bottom-center">Bottom Center</option>
+                                                <option value="top-right">Top Right</option>
+                                                <option value="top-left">Top Left</option>
+                                                <option value="top-center">Top Center</option>
+                                                <option value="center">Middle Center</option>
+                                            </select>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <label className="text-[10px] text-zinc-400 w-12 shrink-0">Font</label>
+                                            <select value={signatureFontFamily} onChange={(e) => setSignatureFontFamily(e.target.value)} className="bg-zinc-800/40 p-1 rounded text-[10px] border border-zinc-700/30 flex-1">
+                                                {fonts.map(f => <option key={f.value} value={f.value}>{f.name}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Style Controls */}
+                            <div className="glass-panel p-4 md:p-6 rounded-2xl md:rounded-3xl space-y-4 md:space-y-6">
+                                <h2 className="text-sm font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
+                                    <span className="bg-pink-500/20 text-pink-400 p-1.5 rounded-lg"><Icon path={<path d="m12 19 7-7 3 3-7 7-3-3z" />} /></span>
+                                    Style & Effects
+                                </h2>
+
+                                {/* Display Mode Toggle */}
+                                <div className="flex bg-zinc-900/50 p-1 rounded-xl border border-zinc-700/50 mb-2">
+                                    <button
+                                        onClick={() => setDisplayMode('scroll')}
+                                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-2 ${displayMode === 'scroll' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    >
+                                        <Icon path={<path d="M7 15l5 5 5-5M7 9l5-5 5 5" />} /> SCROLLING
+                                    </button>
+                                    <button
+                                        onClick={() => setDisplayMode('fade')}
+                                        className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-2 ${displayMode === 'fade' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    >
+                                        <Icon path={<><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></>} /> FADE MODE
+                                    </button>
+                                </div>
+
+                                {displayMode === 'scroll' && (
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Scroll Direction</label>
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {[
+                                                { id: 'up', icon: <path d="M12 19V5M5 12l7-7 7 7" /> },
+                                                { id: 'down', icon: <path d="M12 5v14M5 12l7 7 7-7" /> },
+                                                { id: 'left', icon: <path d="M19 12H5M12 19l-7-7 7-7" /> },
+                                                { id: 'right', icon: <path d="M5 12h14M12 5l7 7-7 7" /> }
+                                            ].map(dir => (
+                                                <button
+                                                    key={dir.id}
+                                                    onClick={() => setScrollDirection(dir.id)}
+                                                    className={`p-3 rounded-xl border transition-all flex items-center justify-center ${scrollDirection === dir.id ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-zinc-800/30 border-zinc-700/30 text-zinc-500'}`}
+                                                >
+                                                    <Icon path={dir.icon} />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Font & Align */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <select
+                                        value={fontFamily}
+                                        onChange={(e) => setFontFamily(e.target.value)}
+                                        className="w-full bg-zinc-800/50 text-white p-2 rounded-xl text-xs border border-zinc-700/50 outline-none"
+                                    >
+                                        {fonts.map(f => <option key={f.value} value={f.value}>{f.name}</option>)}
+                                    </select>
+                                    <div className="flex bg-zinc-800/50 rounded-xl border border-zinc-700/50 overflow-hidden">
+                                        {['left', 'center', 'right'].map((align) => (
+                                            <button
+                                                key={align}
+                                                onClick={() => setAlignment(align)}
+                                                className={`flex-1 py-1 flex items-center justify-center transition ${alignment === align ? 'bg-zinc-600 text-white' : 'text-zinc-500 hover:text-white'}`}
+                                            >
+                                                {align === 'left' && <Icon path={<path d="M17 10H3M21 6H3M21 14H3M17 18H3" />} />}
+                                                {align === 'center' && <Icon path={<path d="M21 6H3M17 10H7M21 14H3M17 18H7" />} />}
+                                                {align === 'right' && <Icon path={<path d="M21 10H7M21 6H3M21 14H3M21 18H7" />} />}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Color, Size & Spacing */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex-1">
+                                            <label className="block text-[10px] text-zinc-500 mb-1">Size {fontSize}px</label>
+                                            <input type="range" min="16" max="100" value={fontSize} onChange={(e) => setFontSize(parseInt(e.target.value))} className="w-full accent-emerald-500" />
+                                        </div>
+                                        <div className="flex flex-col items-center">
+                                            <label className="text-[10px] text-zinc-500 mb-1">Color</label>
+                                            <div className="relative overflow-hidden w-8 h-8 rounded-full border border-white/20 ring-2 ring-white/10">
+                                                <input type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] cursor-pointer p-0 border-0" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] text-zinc-500 mb-1 uppercase tracking-widest">Shake Intensity ({shakeIntensity})</label>
+                                        <input type="range" min="0" max="30" step="1" value={shakeIntensity} onChange={(e) => setShakeIntensity(parseInt(e.target.value))} className="w-full accent-red-500" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] text-zinc-500 mb-1 uppercase tracking-widest">Line Spacing ({lineSpacing.toFixed(1)})</label>
+                                        <input type="range" min="0.5" max="3" step="0.1" value={lineSpacing} onChange={(e) => setLineSpacing(parseFloat(e.target.value))} className="w-full accent-emerald-500" />
+                                    </div>
+                                </div>
+
+                                {/* Effects Part 2 */}
+                                <div className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-2xl border border-zinc-700/50">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg ${highlightEffect ? 'bg-amber-500/20 text-amber-500' : 'bg-zinc-700/50 text-zinc-500'}`}>
+                                            <Icon path={<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />} />
+                                        </div>
+                                        <span className="text-xs font-bold text-zinc-300">Karaoke Mode</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        {highlightEffect && (
+                                            <div className="relative overflow-hidden w-6 h-6 rounded-full border border-white/20">
+                                                <input type="color" value={activeColor} onChange={(e) => setActiveColor(e.target.value)} className="absolute -top-[50%] -left-[50%] w-[200%] h-[200%] cursor-pointer p-0 border-0" />
+                                            </div>
+                                        )}
+                                        <button
+                                            onClick={() => setHighlightEffect(!highlightEffect)}
+                                            className={`w-10 h-5 rounded-full transition-all relative ${highlightEffect ? 'bg-emerald-500' : 'bg-zinc-600'}`}
+                                        >
+                                            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${highlightEffect ? 'left-6' : 'left-1'}`}></div>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Effect Toggles */}
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        onClick={() => setGlowEffect(!glowEffect)}
+                                        className={`p-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${glowEffect ? 'bg-purple-500/20 border-purple-500/50 text-purple-300' : 'bg-zinc-800/30 border-zinc-700/30 text-zinc-500'}`}
+                                    >
+                                        <span>✨ Glow</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setBgZoom(!bgZoom)}
+                                        className={`p-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${bgZoom ? 'bg-blue-500/20 border-blue-500/50 text-blue-300' : 'bg-zinc-800/30 border-zinc-700/30 text-zinc-500'}`}
+                                    >
+                                        <span>🎥 Zoom</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setShowVisualizer(!showVisualizer)}
+                                        className={`p-3 rounded-xl border text-[10px] font-bold transition-all flex items-center justify-center gap-2 ${showVisualizer ? 'bg-amber-500/20 border-amber-500/50 text-amber-300' : 'bg-zinc-800/30 border-zinc-700/30 text-zinc-500'}`}
+                                    >
+                                        <Icon path={<path d="M4 9h2v6H4V9zm4-5h2v16H8V4zm4 9h2v6h-2v-6zm4-5h2v10h-2V8zm4 5h2v4h-2v-4z" />} />
+                                        <span>🌊 Waveform (Beat)</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setShowParticles(!showParticles)}
+                                        className={`p-3 rounded-xl border text-[10px] font-bold transition-all flex items-center justify-center gap-2 ${showParticles ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300' : 'bg-zinc-800/30 border-zinc-700/30 text-zinc-500'}`}
+                                    >
+                                        <Icon path={<path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />} />
+                                        <span>✨ Particles</span>
+                                    </button>
+                                </div>
+
+
+
+                                {/* Progress Style Selector */}
+                                <div className="space-y-2 mt-2">
+                                    <label className="block text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Progress Design</label>
+                                    <div className="flex bg-zinc-900/50 p-1 rounded-xl border border-zinc-700/50">
+                                        <button
+                                            onClick={() => setProgressStyle('linear')}
+                                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-2 ${progressStyle === 'linear' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                        >
+                                            <Icon path={<path d="M4 12h16" />} /> LINE
+                                        </button>
+                                        <button
+                                            onClick={() => setProgressStyle('circular')}
+                                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-2 ${progressStyle === 'circular' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                        >
+                                            <Icon path={<path d="M12 2v4a6 6 0 1 0 6 6h4a10 10 0 1 1-10-10z" />} /> CIRCLE
+                                        </button>
+                                        <button
+                                            onClick={() => setProgressStyle('dots')}
+                                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-2 ${progressStyle === 'dots' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                        >
+                                            ••• DOTS
+                                        </button>
+                                        <button
+                                            onClick={() => setProgressStyle('gradient')}
+                                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-2 ${progressStyle === 'gradient' ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                        >
+                                            ≈ GRADIENT
+                                        </button>
+                                    </div>
+                                    <div className="flex gap-2 mt-2">
+                                        <label className="text-[10px] text-zinc-400">Position</label>
+                                        <button onClick={() => setProgressPosition('top')} className={`px-3 py-1 rounded ${progressPosition === 'top' ? 'bg-emerald-500 text-black' : 'bg-zinc-800 text-zinc-400'}`}>Top</button>
+                                        <button onClick={() => setProgressPosition('bottom')} className={`px-3 py-1 rounded ${progressPosition === 'bottom' ? 'bg-emerald-500 text-black' : 'bg-zinc-800 text-zinc-400'}`}>Bottom</button>
+                                    </div>
+                                </div>
+
+                                {/* Visual Themes */}
+                                <div className="space-y-3 mt-4">
+                                    <label className="block text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Visual Themes (presets)</label>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-2 gap-2">
+                                        {Object.entries(THEMES).map(([key, theme]) => (
+                                            <button
+                                                key={key}
+                                                onClick={() => applyTheme(key)}
+                                                className="group p-3 rounded-xl bg-zinc-900/40 border border-zinc-700/50 hover:border-pink-500/50 transition-all flex flex-col items-center gap-1 active:scale-95"
+                                            >
+                                                <span className="text-xl group-hover:scale-125 transition-transform">{theme.icon}</span>
+                                                <span className="text-[10px] font-black text-zinc-400 group-hover:text-zinc-100 italic uppercase">{theme.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Tone Selector */}
+                                <div className="space-y-2 mt-4">
+                                    <label className="block text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Visual Tone (Filter)</label>
+                                    <select
+                                        value={tone}
+                                        onChange={(e) => setTone(e.target.value)}
+                                        className="w-full bg-zinc-900/50 text-white p-3 rounded-xl text-xs font-bold border border-zinc-700/50 outline-none focus:border-pink-500/50"
+                                    >
+                                        {Object.entries(TONES).map(([key, val]) => (
+                                            <option key={key} value={key}>{val.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Playback & Download Controls */}
+                            <div className="glass-panel p-4 md:p-6 rounded-2xl md:rounded-3xl flex flex-col gap-4">
+                                <div className="flex flex-col gap-3">
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => {
+                                                const starting = !isPlaying;
+                                                setIsPlaying(starting);
+                                                // Reset reveal start so animation plays from the beginning each time Play is pressed
+                                                if (starting) {
+                                                    customQuoteRevealStartRef.current = null;
+                                                }
+                                            }}
+                                            className={`flex-1 py-4 rounded-2xl font-bold shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2 ${isPlaying ? 'bg-amber-500 hover:bg-amber-400 text-black' : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-110 text-white'}`}
+                                        >
+                                            {isPlaying ? 'PAUSE' : 'PLAY PREVIEW'}
+                                        </button>
+                                        <button onClick={resetScroll} className="p-4 rounded-2xl bg-zinc-700/50 hover:bg-zinc-600/50 text-white transition-all">
+                                            ↺
+                                        </button>
+                                    </div>
+
+
+                                </div>
+                                <div className="flex items-center gap-3 bg-zinc-900/40 p-3 rounded-xl border border-zinc-700/30">
+                                    <span className="text-[10px] font-mono text-zinc-500">SPEED</span>
+                                    <input type="range" min="0.1" max="5" step="0.05" value={speed} onChange={(e) => setSpeed(parseFloat(e.target.value))} className="flex-1 accent-white" />
+                                    <button onClick={autoSyncSpeed} className="px-2 py-1 bg-white/10 hover:bg-white/20 rounded text-[10px] font-bold text-emerald-400">SYNC</button>
+                                </div>
+                            </div>
+
+                        </div>
+
+
+                        {/* RIGHT PANEL: PREVIEW / CANVAS */}
+                        <div className="lg:col-span-8 order-1 lg:order-2 flex flex-col gap-4 sticky top-4 lg:relative canvas-container">
+                            <div className="glass-panel p-2 rounded-3xl relative group overflow-hidden shadow-2xl ring-1 ring-white/10">
+                                <div className="relative aspect-video bg-zinc-950 rounded-2xl overflow-hidden flex items-center justify-center">
+
+                                    {/* Canvas is the source of truth now */}
+                                    <canvas
+                                        ref={canvasRef}
+                                        width={1280}
+                                        height={720}
+                                        className="w-full h-full object-contain"
+                                    />
+
+                                    {/* Video Overlay Controls (Time + Scrubber) */}
+                                    <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex items-center gap-3 text-xs font-mono font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                        <span className="text-white/80 w-10 text-right">{formatTime(currentTime)}</span>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max={duration || 100}
+                                            value={currentTime}
+                                            onChange={handleSeek}
+                                            onInput={(e) => {
+                                                const time = parseFloat(e.target.value);
+                                                if (!isNaN(time)) {
+                                                    // update immediately for live preview sync
+                                                    setCurrentTime(time);
+                                                    if (audioRef.current) audioRef.current.currentTime = time;
+                                                    // sync video background if present
+                                                    if (videoBg) {
+                                                        const trimmedVideoDuration = videoEnd - videoStart;
+                                                        if (trimmedVideoDuration > 0) {
+                                                            const offset = (time - audioStart) % trimmedVideoDuration;
+                                                            videoBg.currentTime = videoStart + (offset < 0 ? offset + trimmedVideoDuration : offset);
+                                                        }
+                                                    }
+                                                    // update scroll position so lyrics/overlay reflect immediately
+                                                    if (speed > 0) setScrollPos(Math.max(0, speed * 60 * (time - audioStart)));
+                                                }
+                                            }}
+                                            className="flex-1 h-1.5 bg-white/20 rounded-full appearance-none accent-emerald-500 cursor-pointer hover:h-2 transition-all shadow-lg"
+                                        />
+                                        <span className="text-white/80 w-10 text-left">{formatTime(duration)}</span>
+                                    </div>
+
+
+
+                                    {/* Overlay for "No Content" state */}
+                                    {bgType === 'none' && (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-700 gap-4 pointer-events-none">
+                                            <Icon path={<path d="m21 15-9-9-9 9 9 9 9-9z" />} />
+                                            <p className="text-sm font-medium uppercase tracking-widest">Preview Area</p>
+                                        </div>
+                                    )}
+
+                                </div>
+                            </div>
+
+                            <div className="pt-8 border-t border-white/5 flex flex-col items-center gap-2">
+                                <h4 className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.2em]">Powered by VibeSync Engine Pro</h4>
+                                <p className="text-center text-[10px] text-zinc-500 font-medium">© 2026 VibeSync Studio K💕S . Designed for Creators.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

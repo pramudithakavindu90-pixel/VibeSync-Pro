@@ -1,20 +1,17 @@
 {
   "name": "VibeSync Pro",
   "short_name": "VibeSync",
-  "start_url": "./index.html",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#09090b",
   "theme_color": "#09090b",
+  "description": "Premium music streaming experience.",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/pramudithakavindu90-pixel/VibeSync-Pro/main/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "https://raw.githubusercontent.com/pramudithakavindu90-pixel/VibeSync-Pro/main/icon-512.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

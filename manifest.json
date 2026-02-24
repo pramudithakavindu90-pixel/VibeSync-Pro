@@ -1,9 +1,20 @@
 {
-  "manifest_version": 3,
   "name": "VibeSync Pro",
-  "version": "1.0.0",
-  "description": "Professional Lyrics Video Maker",
-  "action": {
-    "default_popup": "index.html"
-  }
+  "short_name": "VibeSync",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/pramudithakavindu90-pixel/VibeSync-Pro/main/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/pramudithakavindu90-pixel/VibeSync-Pro/main/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }

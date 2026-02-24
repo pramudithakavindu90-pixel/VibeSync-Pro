@@ -2452,7 +2452,33 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
+    <script>
+// වීඩියෝ ඩවුන්ලෝඩ් කිරීමේ විශේෂ කේතය
+async function downloadVideo(videoUrl, fileName) {
+    try {
+        const response = await fetch(videoUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = fileName || 'vibe_sync_video.mp4';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }, 100);
+        return true;
+    } catch (error) {
+        console.error("Download failed:", error);
+        window.open(videoUrl, '_blank');
+        return false;
+    }
+}
+</script>
 </body>
 
 
 </html>
+
